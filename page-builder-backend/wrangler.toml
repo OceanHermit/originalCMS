@@ -1,0 +1,16 @@
+name = "page-builder"
+pages_build_output_dir = "public"
+compatibility_date = "2026-07-01"
+
+# These bindings matter for local dev (`wrangler pages dev`).
+# For the deployed (Git-connected) project, set the same binding names
+# again in the Cloudflare dashboard: Settings > Functions > Bindings.
+
+[[d1_databases]]
+binding = "DB"
+database_name = "page-builder-db"
+database_id = "REPLACE_AFTER_RUNNING_D1_CREATE"
+
+[[r2_buckets]]
+binding = "PROJECTS_BUCKET"
+bucket_name = "page-builder-projects"
