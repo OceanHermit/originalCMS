@@ -45,6 +45,34 @@ button,select,input{font-family:inherit;}
 .btn-primary:hover{filter:brightness(1.1);}
 .mobile-only{display:none;}
 #saveStatus{font-size:11px;color:var(--text-muted);opacity:0;transition:opacity .3s;white-space:nowrap;}
+#accountArea{display:flex;align-items:center;gap:8px;flex:0 0 auto;}
+.account{display:inline-block;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--text-muted);}
+
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;
+  align-items:center;justify-content:center;z-index:1000;padding:16px;
+}
+.modal-overlay.open{display:flex;}
+.modal{
+  background:var(--bg-panel);border:1px solid var(--border);border-radius:14px;
+  width:100%;max-width:440px;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;
+  box-shadow:0 20px 60px rgba(0,0,0,.5);
+}
+.modal-head{padding:15px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-head h3{margin:0;font-size:15px;font-weight:600;}
+.modal-close{background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;}
+.modal-close:hover{color:var(--text);}
+.modal-body{padding:14px 18px;overflow-y:auto;}
+.proj-item{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:11px 12px;border:1px solid var(--border);border-radius:9px;margin-bottom:8px;cursor:pointer;
+}
+.proj-item:hover{border-color:var(--accent);}
+.proj-item .pname{font-size:13.5px;color:var(--text);}
+.proj-item .pmeta{font-size:11px;color:var(--text-muted);margin-top:3px;}
+.proj-del{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:15px;padding:4px 6px;border-radius:6px;flex:0 0 auto;}
+.proj-del:hover{color:#e77;}
+.modal-empty{color:var(--text-muted);font-size:13px;padding:8px 0;line-height:1.7;}
 
 .workspace{flex:1;display:flex;min-height:0;position:relative;}
 
@@ -161,9 +189,12 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0;}
       <button class="btn mobile-only" id="btnToggleRail">☰</button>
       <button class="btn" id="btnImport">⬆ 読み込む</button>
       <button class="btn" id="btnSaveTemp">💾 一時保存</button>
+      <button class="btn" id="btnCloudOpen">☁ クラウドを開く</button>
+      <button class="btn" id="btnCloudSave">☁ クラウド保存</button>
       <span id="saveStatus"></span>
       <button class="btn" id="btnPreview">▶ 再生</button>
       <button class="btn btn-primary" id="btnExport">⬇ ZIPで書き出す</button>
+      <span id="accountArea"></span>
       <button class="btn mobile-only" id="btnToggleInspector">⚙</button>
     </div>
   </header>
@@ -217,6 +248,16 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0;}
 </div>
 <div id="penHint">クリックで頂点を追加・Enter/ダブルクリックで確定・Escでキャンセル・Backspaceで1点戻る</div>
 <input type="file" id="zipInput" accept=".zip" hidden>
+
+<div class="modal-overlay" id="cloudModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>クラウドのプロジェクト</h3>
+      <button class="modal-close" id="cloudModalClose">×</button>
+    </div>
+    <div class="modal-body" id="cloudModalBody"></div>
+  </div>
+</div>
 
 <script>
 // ---------------- State ----------------
@@ -1323,7 +1364,7 @@ zipInput.addEventListener('change', async (e)=>{
   }
 });
 
-// ---------------- Temporary save (browser-side, via Claude artifact storage) ----------------
+// ---------------- Temporary save (this browser: Claude artifact storage, else localStorage) ----------------
 let saveStatusTimer = null;
 function flashSaveStatus(msg, isError){
   const el = $('saveStatus');
@@ -1335,15 +1376,23 @@ function flashSaveStatus(msg, isError){
   saveStatusTimer = setTimeout(()=>{ el.style.opacity='0'; }, 2400);
 }
 
+const LS_KEY = 'page-builder-autosave';
+function currentProjectData(){
+  return { version:2, canvasWidth: state.canvasWidth, canvasHeight: state.canvasHeight, canvasBg: state.canvasBg, els: state.els };
+}
+
 async function saveTemp(){
-  if(!window.storage){
-    flashSaveStatus('一時保存はClaude上でのみ利用できます', true);
-    return;
+  const data = JSON.stringify(Object.assign(currentProjectData(), { savedAt: Date.now() }));
+  if(window.storage){
+    try{
+      const result = await window.storage.set('autosave', data, false);
+      flashSaveStatus(result ? '保存しました' : '保存に失敗しました', !result);
+      return;
+    } catch(err){ console.error(err); }
   }
   try{
-    const data = JSON.stringify({ version:2, canvasWidth: state.canvasWidth, canvasHeight: state.canvasHeight, canvasBg: state.canvasBg, els: state.els, savedAt: Date.now() });
-    const result = await window.storage.set('autosave', data, false);
-    flashSaveStatus(result ? '保存しました' : '保存に失敗しました', !result);
+    localStorage.setItem(LS_KEY, data);
+    flashSaveStatus('保存しました(このブラウザ内)');
   } catch(err){
     console.error(err);
     flashSaveStatus('保存に失敗しました', true);
@@ -1351,21 +1400,171 @@ async function saveTemp(){
 }
 
 async function loadTemp(){
-  if(!window.storage) return false;
-  try{
-    const result = await window.storage.get('autosave', false);
-    if(result && result.value){
-      const data = JSON.parse(result.value);
-      applyLoadedProject(data);
-      return true;
-    }
-  } catch(err){
-    console.log('No autosave found or storage unavailable', err);
+  if(window.storage){
+    try{
+      const result = await window.storage.get('autosave', false);
+      if(result && result.value){ applyLoadedProject(JSON.parse(result.value)); return true; }
+    } catch(err){ console.log('No artifact autosave', err); }
   }
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(raw){ applyLoadedProject(JSON.parse(raw)); return true; }
+  } catch(err){ console.log('No local autosave', err); }
   return false;
 }
 
 $('btnSaveTemp').addEventListener('click', saveTemp);
+
+// ---------------- Cloud (Google login + server-side projects) ----------------
+const cloud = { user: null, currentProjectId: null, currentProjectName: null };
+
+function renderAccount(){
+  const area = $('accountArea');
+  if(!area) return;
+  if(cloud.user){
+    area.innerHTML = `<span class="account" title="${escapeHtml(cloud.user.email)}">👤 ${escapeHtml(cloud.user.email)}</span><button class="btn" id="btnLogout">ログアウト</button>`;
+    $('btnLogout').addEventListener('click', cloudLogout);
+  } else {
+    area.innerHTML = `<button class="btn btn-primary" id="btnLogin">Googleでログイン</button>`;
+    $('btnLogin').addEventListener('click', ()=>{ window.location.href = '/api/auth/login'; });
+  }
+}
+
+async function refreshAuth(){
+  try{
+    const res = await fetch('/api/auth/me', { credentials:'same-origin' });
+    const j = await res.json();
+    cloud.user = j.user || null;
+  } catch(err){ cloud.user = null; }
+  renderAccount();
+}
+
+function ensureLogin(){
+  if(cloud.user) return true;
+  if(confirm('クラウド機能を使うにはGoogleログインが必要です。ログインしますか?')){
+    window.location.href = '/api/auth/login';
+  }
+  return false;
+}
+
+async function cloudLogout(){
+  try{ await fetch('/api/auth/logout', { method:'POST', credentials:'same-origin' }); }catch(err){}
+  cloud.user = null; cloud.currentProjectId = null; cloud.currentProjectName = null;
+  renderAccount();
+  flashSaveStatus('ログアウトしました');
+}
+
+async function cloudSave(){
+  if(!ensureLogin()) return;
+  const data = currentProjectData();
+  const btn = $('btnCloudSave');
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = '保存中…';
+  try{
+    let res;
+    if(cloud.currentProjectId){
+      res = await fetch('/api/projects/' + cloud.currentProjectId, {
+        method:'PUT', credentials:'same-origin', headers:{ 'content-type':'application/json' },
+        body: JSON.stringify({ name: cloud.currentProjectName, data })
+      });
+    } else {
+      const name = prompt('プロジェクト名を入力してください', cloud.currentProjectName || 'マイプロジェクト');
+      if(name === null){ return; }
+      res = await fetch('/api/projects', {
+        method:'POST', credentials:'same-origin', headers:{ 'content-type':'application/json' },
+        body: JSON.stringify({ name: name || '無題のプロジェクト', data })
+      });
+    }
+    if(res.status === 401){ cloud.user = null; renderAccount(); ensureLogin(); return; }
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const j = await res.json();
+    if(j.id) cloud.currentProjectId = j.id;
+    if(j.name) cloud.currentProjectName = j.name;
+    flashSaveStatus('クラウドに保存しました');
+  } catch(err){
+    console.error(err);
+    flashSaveStatus('クラウド保存に失敗しました', true);
+  } finally {
+    btn.disabled = false; btn.textContent = original;
+  }
+}
+
+function closeCloudModal(){ $('cloudModal').classList.remove('open'); }
+
+async function openCloudList(){
+  if(!ensureLogin()) return;
+  const body = $('cloudModalBody');
+  body.innerHTML = '<div class="modal-empty">読み込み中…</div>';
+  $('cloudModal').classList.add('open');
+  try{
+    const res = await fetch('/api/projects', { credentials:'same-origin' });
+    if(res.status === 401){ closeCloudModal(); cloud.user = null; renderAccount(); ensureLogin(); return; }
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const j = await res.json();
+    const projects = j.projects || [];
+    if(!projects.length){
+      body.innerHTML = '<div class="modal-empty">保存済みのプロジェクトはまだありません。<br>「☁ クラウド保存」で保存すると、ここに表示されます。</div>';
+      return;
+    }
+    body.innerHTML = projects.map(p=>`
+      <div class="proj-item" data-id="${p.id}">
+        <div>
+          <div class="pname">${escapeHtml(p.name)}</div>
+          <div class="pmeta">更新: ${new Date(p.updated_at).toLocaleString('ja-JP')}</div>
+        </div>
+        <button class="proj-del" data-del="${p.id}" title="削除">🗑</button>
+      </div>`).join('');
+    body.querySelectorAll('.proj-item').forEach(n=>{
+      n.addEventListener('click', (e)=>{
+        if(e.target.closest('[data-del]')) return;
+        loadCloudProject(n.dataset.id);
+      });
+    });
+    body.querySelectorAll('[data-del]').forEach(b=>{
+      b.addEventListener('click', async (e)=>{
+        e.stopPropagation();
+        if(!confirm('このプロジェクトを削除しますか?この操作は元に戻せません。')) return;
+        await deleteCloudProject(b.dataset.del);
+        openCloudList();
+      });
+    });
+  } catch(err){
+    console.error(err);
+    body.innerHTML = '<div class="modal-empty" style="color:#e77;">一覧の取得に失敗しました。</div>';
+  }
+}
+
+async function loadCloudProject(id){
+  if(state.els.length && !confirm('現在のキャンバスの内容は上書きされます。よろしいですか?')) return;
+  try{
+    const res = await fetch('/api/projects/' + id, { credentials:'same-origin' });
+    if(res.status === 401){ closeCloudModal(); cloud.user = null; renderAccount(); ensureLogin(); return; }
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const j = await res.json();
+    if(state.drawingMode) cancelPenTool();
+    applyLoadedProject(j.data || {});
+    cloud.currentProjectId = j.id;
+    cloud.currentProjectName = j.name;
+    closeCloudModal();
+    flashSaveStatus('クラウドから読み込みました');
+  } catch(err){
+    console.error(err);
+    flashSaveStatus('読み込みに失敗しました', true);
+  }
+}
+
+async function deleteCloudProject(id){
+  try{
+    const res = await fetch('/api/projects/' + id, { method:'DELETE', credentials:'same-origin' });
+    if(!res.ok && res.status !== 404) throw new Error('HTTP ' + res.status);
+    if(cloud.currentProjectId === id){ cloud.currentProjectId = null; cloud.currentProjectName = null; }
+  } catch(err){ console.error(err); flashSaveStatus('削除に失敗しました', true); }
+}
+
+$('btnCloudSave').addEventListener('click', cloudSave);
+$('btnCloudOpen').addEventListener('click', openCloudList);
+$('cloudModalClose').addEventListener('click', closeCloudModal);
+$('cloudModal').addEventListener('click', (e)=>{ if(e.target === $('cloudModal')) closeCloudModal(); });
 
 // ---------------- Init ----------------
 function seedDemoContent(){
@@ -1385,6 +1584,8 @@ function seedDemoContent(){
   pageCanvas.style.width = state.canvasWidth+'px';
   pageCanvas.style.height = state.canvasHeight+'px';
   pageCanvas.style.background = state.canvasBg;
+  renderAccount();
+  refreshAuth();
   let restored = false;
   try{ restored = await loadTemp(); }catch(err){ console.log(err); }
   if(!restored){ seedDemoContent(); }
