@@ -43,6 +43,18 @@ button,select,input{font-family:inherit;}
 .btn:hover{border-color:var(--accent);}
 .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
 .btn-primary:hover{filter:brightness(1.1);}
+
+/* Compact icon buttons (topbar / inspector tool rows) */
+.icon-btn{
+  background:var(--bg-panel-2);color:var(--text);border:1px solid var(--border);
+  width:34px;height:34px;padding:0;border-radius:8px;cursor:pointer;flex:0 0 auto;
+  display:inline-flex;align-items:center;justify-content:center;transition:border-color .15s,color .15s,filter .15s;
+}
+.icon-btn svg{width:18px;height:18px;display:block;}
+.icon-btn:hover{border-color:var(--accent);color:var(--accent);}
+.icon-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.icon-btn.primary:hover{filter:brightness(1.1);color:#fff;}
+.tb-sep{width:1px;height:22px;background:var(--border);flex:0 0 auto;margin:0 2px;}
 .mobile-only{display:none;}
 #saveStatus{font-size:11px;color:var(--text-muted);opacity:0;transition:opacity .3s;white-space:nowrap;}
 #accountArea{display:flex;align-items:center;gap:8px;flex:0 0 auto;}
@@ -83,23 +95,34 @@ button,select,input{font-family:inherit;}
 .rail-section h4{
   font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin:0 0 10px;font-weight:600;
 }
-.add-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.add-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
 .add-btn{
-  display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px;
-  background:var(--bg-panel-2);border:1px solid var(--border);border-radius:10px;color:var(--text);
-  cursor:pointer;font-size:11.5px;
+  display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 1px;
+  background:var(--bg-panel-2);border:1px solid var(--border);border-radius:8px;color:var(--text);
+  cursor:pointer;font-size:9px;line-height:1.2;white-space:nowrap;letter-spacing:-.02em;
 }
 .add-btn:hover{border-color:var(--accent);color:var(--accent);}
-.add-btn .ic{font-size:18px;line-height:1;}
-.full-btn{width:100%;margin-top:8px;}
+.add-btn svg{width:18px;height:18px;display:block;}
+.full-btn{width:100%;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px;}
+.full-btn svg{width:16px;height:16px;}
 #layerList{display:flex;flex-direction:column;gap:4px;}
 .layer-item{
-  display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;font-size:12.5px;
+  display:flex;align-items:center;gap:7px;padding:7px 8px;border-radius:7px;font-size:12.5px;
   cursor:pointer;color:var(--text-muted);border:1px solid transparent;
 }
 .layer-item:hover{background:var(--bg-panel-2);}
 .layer-item.active{background:var(--accent-soft);color:var(--text);border-color:var(--accent);}
-.layer-item .lic{opacity:.75;width:14px;text-align:center;}
+.layer-item .lic{opacity:.75;width:16px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
+.layer-item .lic svg{width:14px;height:14px;display:block;}
+.layer-item .lname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.layer-item .grip{
+  margin-left:auto;flex:0 0 auto;opacity:.35;cursor:grab;display:flex;align-items:center;
+}
+.layer-item .grip svg{width:13px;height:13px;display:block;}
+.layer-item:hover .grip{opacity:.8;}
+.layer-item.dragging{opacity:.4;}
+.layer-item.drop-before{box-shadow:0 -2px 0 0 var(--accent);}
+.layer-item.drop-after{box-shadow:0 2px 0 0 var(--accent);}
 .hint{font-size:11.5px;color:var(--text-muted);line-height:1.8;}
 
 .canvas-area{
@@ -123,12 +146,17 @@ button,select,input{font-family:inherit;}
 .zoom-bar .zoom-fit{font-size:12px;border-left:1px solid var(--border);}
 @media (max-width:880px){ .zoom-bar{right:12px;bottom:12px;} }
 .align-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
-.align-grid button,.dist-grid button{
-  background:var(--bg-panel-2);border:1px solid var(--border);color:var(--text);
-  padding:8px 0;border-radius:6px;cursor:pointer;font-size:14px;
-}
-.align-grid button:hover,.dist-grid button:hover{border-color:var(--accent);color:var(--accent);}
 .dist-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.order-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+.align-grid button,.dist-grid button,.order-grid button{
+  background:var(--bg-panel-2);border:1px solid var(--border);color:var(--text);
+  padding:7px 0;border-radius:6px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.align-grid button svg,.dist-grid button svg,.order-grid button svg{width:20px;height:20px;display:block;}
+.align-grid button:hover,.dist-grid button:hover,.order-grid button:hover{border-color:var(--accent);color:var(--accent);}
+.align-grid button:disabled,.dist-grid button:disabled{opacity:.35;cursor:default;}
+.align-grid button:disabled:hover,.dist-grid button:disabled:hover{border-color:var(--border);color:var(--text);}
 .multi-head{font-size:13px;color:var(--text);margin-bottom:12px;font-weight:600;}
 .marquee{
   position:absolute;border:1px solid var(--accent);background:var(--accent-soft);
@@ -221,16 +249,18 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0;}
   <header class="topbar">
     <div class="brand"><span class="dot"></span><span class="full">ページビルダー</span></div>
     <div class="topbar-actions">
-      <button class="btn mobile-only" id="btnToggleRail">☰</button>
-      <button class="btn" id="btnImport">⬆ 読み込む</button>
-      <button class="btn" id="btnSaveTemp">💾 一時保存</button>
-      <button class="btn" id="btnCloudOpen">☁ クラウドを開く</button>
-      <button class="btn" id="btnCloudSave">☁ クラウド保存</button>
+      <button class="icon-btn mobile-only" id="btnToggleRail" data-icon="menu" title="ツールパネル" aria-label="ツールパネル"></button>
+      <button class="icon-btn" id="btnImport" data-icon="folderOpen" title="ZIPを読み込む" aria-label="ZIPを読み込む"></button>
+      <button class="icon-btn" id="btnSaveTemp" data-icon="floppy" title="一時保存(このブラウザ)" aria-label="一時保存"></button>
+      <span class="tb-sep"></span>
+      <button class="icon-btn" id="btnCloudOpen" data-icon="cloudDown" title="クラウドを開く" aria-label="クラウドを開く"></button>
+      <button class="icon-btn" id="btnCloudSave" data-icon="cloudUp" title="クラウドに保存" aria-label="クラウドに保存"></button>
       <span id="saveStatus"></span>
-      <button class="btn" id="btnPreview">▶ 再生</button>
-      <button class="btn btn-primary" id="btnExport">⬇ ZIPで書き出す</button>
+      <span class="tb-sep"></span>
+      <button class="icon-btn" id="btnPreview" data-icon="play" title="アニメーションを再生" aria-label="再生"></button>
+      <button class="icon-btn primary" id="btnExport" data-icon="download" title="ZIPで書き出す" aria-label="ZIPで書き出す"></button>
       <span id="accountArea"></span>
-      <button class="btn mobile-only" id="btnToggleInspector">⚙</button>
+      <button class="icon-btn mobile-only" id="btnToggleInspector" data-icon="sliders" title="プロパティ" aria-label="プロパティ"></button>
     </div>
   </header>
   <div class="workspace">
@@ -238,24 +268,24 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0;}
       <div class="rail-section">
         <h4>要素を追加</h4>
         <div class="add-grid">
-          <button class="add-btn" data-add="text"><span class="ic">T</span>テキスト</button>
-          <button class="add-btn" data-add="rect"><span class="ic">▭</span>四角形</button>
-          <button class="add-btn" data-add="ellipse"><span class="ic">●</span>円</button>
-          <button class="add-btn" data-add="image"><span class="ic">🖼</span>画像</button>
+          <button class="add-btn" data-add="text" data-icon="text" title="テキスト">テキスト</button>
+          <button class="add-btn" data-add="rect" data-icon="rect" title="四角形">四角形</button>
+          <button class="add-btn" data-add="ellipse" data-icon="ellipse" title="円">円</button>
+          <button class="add-btn" data-add="image" data-icon="image" title="画像">画像</button>
         </div>
         <input type="file" id="imageInput" accept="image/*" hidden>
       </div>
       <div class="rail-section">
         <h4>ベクター図形</h4>
         <div class="add-grid">
-          <button class="add-btn" data-vec="triangle"><span class="ic">▲</span>三角形</button>
-          <button class="add-btn" data-vec="star"><span class="ic">★</span>星</button>
-          <button class="add-btn" data-vec="pentagon"><span class="ic">⬠</span>五角形</button>
-          <button class="add-btn" data-vec="hexagon"><span class="ic">⬡</span>六角形</button>
-          <button class="add-btn" data-vec="arrow"><span class="ic">➔</span>矢印</button>
-          <button class="add-btn" data-vec="line"><span class="ic">╱</span>直線</button>
+          <button class="add-btn" data-vec="triangle" data-icon="triangle" title="三角形">三角形</button>
+          <button class="add-btn" data-vec="star" data-icon="star" title="星">星</button>
+          <button class="add-btn" data-vec="pentagon" data-icon="pentagon" title="五角形">五角形</button>
+          <button class="add-btn" data-vec="hexagon" data-icon="hexagon" title="六角形">六角形</button>
+          <button class="add-btn" data-vec="arrow" data-icon="arrowShape" title="矢印">矢印</button>
+          <button class="add-btn" data-vec="line" data-icon="line" title="直線">直線</button>
         </div>
-        <button class="btn full-btn" id="btnPenTool">✎ ペンツールで描く</button>
+        <button class="btn full-btn" id="btnPenTool" data-icon="pen">ペンツールで描く</button>
       </div>
       <div class="rail-section">
         <h4>レイヤー</h4>
@@ -267,6 +297,9 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0;}
       </div>
       <div class="rail-section hint">
         <div>💡 ダブルクリックでテキスト編集</div>
+        <div>💡 Shift+クリックで複数選択・空白ドラッグで範囲選択</div>
+        <div>💡 レイヤーはドラッグで重ね順を変更</div>
+        <div>💡 矢印キーで移動(Shiftで10px)</div>
         <div>💡 ペンツール:クリックで頂点追加、Enter/ダブルクリックで確定</div>
         <div>💡 キャンバス下端をドラッグで高さ調整</div>
       </div>
@@ -335,6 +368,94 @@ const ANIMS = [
   {label:'右からスライド', value:'slide-right'},
   {label:'ズームイン', value:'zoom-in'},
 ];
+
+// ---------------- Icons ----------------
+// Stroke icons share one wrapper; align/order icons are filled bars drawn in
+// the style of Illustrator's align palette.
+function svgS(body){
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+}
+function svgF(body){
+  return `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${body}</svg>`;
+}
+// Align icon: a reference rule plus two bars snapped to it.
+function alignIcon(kind){
+  const rule = (d)=>`<path d="${d}" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".55" fill="none"/>`;
+  const bar = (x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="1"/>`;
+  let inner;
+  if(kind==='left')         inner = rule('M3 3.5v17') + bar(4,6,15,4.5) + bar(4,13.5,10,4.5);
+  else if(kind==='hcenter') inner = rule('M12 3.5v17') + bar(4.5,6,15,4.5) + bar(7,13.5,10,4.5);
+  else if(kind==='right')   inner = rule('M21 3.5v17') + bar(5,6,15,4.5) + bar(10,13.5,10,4.5);
+  else if(kind==='top')     inner = rule('M3.5 3h17') + bar(6,4,4.5,15) + bar(13.5,4,4.5,10);
+  else if(kind==='vmiddle') inner = rule('M3.5 12h17') + bar(6,4.5,4.5,15) + bar(13.5,7,4.5,10);
+  else                      inner = rule('M3.5 21h17') + bar(6,5,4.5,15) + bar(13.5,10,4.5,10);
+  return `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${inner}</svg>`;
+}
+// Distribute icon: three bars with equal gaps.
+function distIcon(axis){
+  const bar = (x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="1"/>`;
+  const inner = axis==='h'
+    ? bar(3,4,4,16) + bar(10,4,4,16) + bar(17,4,4,16)
+    : bar(4,3,16,4) + bar(4,10,16,4) + bar(4,17,16,4);
+  return `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${inner}</svg>`;
+}
+// Order icon: a stacked plane plus one or two chevrons pointing away from it.
+function orderIcon(kind){
+  const up = kind==='front' || kind==='forward';
+  const plane = up
+    ? `<rect x="5" y="14.5" width="14" height="6" rx="1.5" fill="currentColor" opacity=".4"/>`
+    : `<rect x="5" y="3.5" width="14" height="6" rx="1.5" fill="currentColor" opacity=".4"/>`;
+  const ch = (d)=>`<path d="${d}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;
+  let arrows;
+  if(kind==='forward')       arrows = ch('m7.5 10 4.5-4.5L16.5 10');
+  else if(kind==='front')    arrows = ch('m7.5 11.5 4.5-4.5 4.5 4.5') + ch('m7.5 6.5 4.5-4.5 4.5 4.5');
+  else if(kind==='backward') arrows = ch('m7.5 14 4.5 4.5 4.5-4.5');
+  else                       arrows = ch('m7.5 12.5 4.5 4.5 4.5-4.5') + ch('m7.5 17.5 4.5 4.5 4.5-4.5');
+  return `<svg viewBox="0 0 24 24" aria-hidden="true">${plane}${arrows}</svg>`;
+}
+
+const ICONS = {
+  // topbar
+  menu:       svgS('<path d="M4 7h16M4 12h16M4 17h16"/>'),
+  folderOpen: svgS('<path d="M3 18V6.5A1.5 1.5 0 0 1 4.5 5h4L11 7.5h8.5A1.5 1.5 0 0 1 21 9v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z"/>'),
+  floppy:     svgS('<path d="M5.5 4h10L20 8.5V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1.5-1Z"/><path d="M8 4v5h7V4.5"/><path d="M7.5 20v-5.5h9V20"/>'),
+  cloudDown:  svgS('<path d="M19.5 16.5A4 4 0 0 0 18 9h-1.3A7 7 0 1 0 5 15.4"/><path d="M12 12v8"/><path d="m8.5 16.5 3.5 3.5 3.5-3.5"/>'),
+  cloudUp:    svgS('<path d="M19.5 16.5A4 4 0 0 0 18 9h-1.3A7 7 0 1 0 5 15.4"/><path d="M12 20v-8"/><path d="m8.5 15.5 3.5-3.5 3.5 3.5"/>'),
+  play:       svgF('<path d="M7 4.5v15a1 1 0 0 0 1.5.87l12-7.5a1 1 0 0 0 0-1.74l-12-7.5A1 1 0 0 0 7 4.5Z"/>'),
+  download:   svgS('<path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/>'),
+  sliders:    svgS('<path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h9M17 17h3"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="15" cy="17" r="2"/>'),
+  // shapes / tools
+  text:       svgS('<path d="M5 6.5V5h14v1.5"/><path d="M12 5v14"/><path d="M9 19h6"/>'),
+  rect:       svgS('<rect x="3.5" y="6" width="17" height="12" rx="1.5"/>'),
+  ellipse:    svgS('<circle cx="12" cy="12" r="7.75"/>'),
+  image:      svgS('<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="m20.5 16.5-4.8-5-6.2 7.4"/>'),
+  triangle:   svgS('<path d="M12 4.5 20.5 19.5h-17L12 4.5Z"/>'),
+  star:       svgS('<path d="m12 3.5 2.6 5.55 5.9.78-4.3 4.15 1.08 5.92L12 17.05 6.72 19.9l1.08-5.92L3.5 9.83l5.9-.78L12 3.5Z"/>'),
+  pentagon:   svgS('<path d="m12 3.5 8.5 6.2-3.25 10.05H6.75L3.5 9.7 12 3.5Z"/>'),
+  hexagon:    svgS('<path d="m12 3 7.8 4.5v9L12 21l-7.8-4.5v-9L12 3Z"/>'),
+  arrowShape: svgS('<path d="M3 9.5h9.5V5.5L21 12l-8.5 6.5v-4H3v-5Z"/>'),
+  line:       svgS('<path d="M4.5 19.5 19.5 4.5"/>'),
+  pen:        svgS('<path d="m12 3 7.5 15L12 14.6 4.5 18 12 3Z"/><path d="M12 14.6V21"/>'),
+  vector:     svgS('<path d="m12 4 7 14-7-3.2L5 18 12 4Z"/>'),
+  grip:       svgF('<circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/>'),
+  // panels
+  alignLeft: alignIcon('left'), alignHCenter: alignIcon('hcenter'), alignRight: alignIcon('right'),
+  alignTop: alignIcon('top'), alignVMiddle: alignIcon('vmiddle'), alignBottom: alignIcon('bottom'),
+  distH: distIcon('h'), distV: distIcon('v'),
+  orderFront: orderIcon('front'), orderForward: orderIcon('forward'),
+  orderBackward: orderIcon('backward'), orderBack: orderIcon('back'),
+};
+
+const LAYER_ICON = { text:'text', rect:'rect', ellipse:'ellipse', image:'image', vector:'vector' };
+
+// Fill in every element that declared an icon in the static markup.
+function injectStaticIcons(root){
+  (root || document).querySelectorAll('[data-icon]').forEach(n=>{
+    const svg = ICONS[n.dataset.icon];
+    if(svg && !n.querySelector('svg')) n.insertAdjacentHTML('afterbegin', svg);
+  });
+}
+injectStaticIcons();
 
 // ---------------- DOM refs ----------------
 const pageCanvas = document.getElementById('pageCanvas');
@@ -822,26 +943,110 @@ function renderAll(){
   renderLayers();
 }
 
+function layerLabel(el){
+  if(el.type==='text') return (el.text||'').trim().slice(0,14) || 'テキスト';
+  if(el.type==='ellipse') return '円';
+  if(el.type==='image') return '画像';
+  if(el.type==='vector') return 'ベクター図形';
+  return '四角形';
+}
+
 function renderLayers(){
-  const iconMap = {text:'T', rect:'▭', ellipse:'●', image:'🖼', vector:'✎'};
+  // The list reads front-to-back, matching how the layers stack on the canvas.
   const sorted = state.els.slice().sort((a,b)=>b.z-a.z);
   if(!sorted.length){
     layerList.innerHTML = '<div style="color:var(--text-muted);font-size:12px;">要素がありません</div>';
     return;
   }
-  layerList.innerHTML = sorted.map(el=>{
-    let label = '四角形';
-    if(el.type==='text') label = (el.text||'').trim().slice(0,12) || 'テキスト';
-    else if(el.type==='ellipse') label = '円';
-    else if(el.type==='image') label = '画像';
-    else if(el.type==='vector') label = 'ベクター図形';
-    return `<div class="layer-item ${isSelected(el.id)?'active':''}" data-id="${el.id}">
-      <span class="lic">${iconMap[el.type]}</span><span>${escapeHtml(label)}</span>
-    </div>`;
-  }).join('');
+  layerList.innerHTML = sorted.map(el=>`
+    <div class="layer-item ${isSelected(el.id)?'active':''}" data-id="${el.id}" draggable="true">
+      <span class="lic">${ICONS[LAYER_ICON[el.type]] || ''}</span>
+      <span class="lname">${escapeHtml(layerLabel(el))}</span>
+      <span class="grip" title="ドラッグで重ね順を変更">${ICONS.grip}</span>
+    </div>`).join('');
   layerList.querySelectorAll('.layer-item').forEach(n=>{
     n.addEventListener('click', (ev)=>selectElement(n.dataset.id, ev.shiftKey||ev.ctrlKey||ev.metaKey));
+    attachLayerDnd(n);
   });
+}
+
+// ---------------- Layer drag & drop reordering ----------------
+let dragLayerId = null;
+function clearDropMarks(){
+  layerList.querySelectorAll('.layer-item').forEach(n=>n.classList.remove('drop-before','drop-after'));
+}
+function attachLayerDnd(node){
+  node.addEventListener('dragstart', (e)=>{
+    dragLayerId = node.dataset.id;
+    node.classList.add('dragging');
+    try{ e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragLayerId); }catch(err){}
+  });
+  node.addEventListener('dragend', ()=>{
+    node.classList.remove('dragging');
+    dragLayerId = null;
+    clearDropMarks();
+  });
+  node.addEventListener('dragover', (e)=>{
+    if(!dragLayerId || node.dataset.id===dragLayerId) return;
+    e.preventDefault();
+    try{ e.dataTransfer.dropEffect = 'move'; }catch(err){}
+    const r = node.getBoundingClientRect();
+    const after = (e.clientY - r.top) > r.height/2;
+    clearDropMarks();
+    node.classList.add(after ? 'drop-after' : 'drop-before');
+  });
+  node.addEventListener('dragleave', ()=>node.classList.remove('drop-before','drop-after'));
+  node.addEventListener('drop', (e)=>{
+    e.preventDefault();
+    if(!dragLayerId || node.dataset.id===dragLayerId){ clearDropMarks(); return; }
+    const r = node.getBoundingClientRect();
+    const after = (e.clientY - r.top) > r.height/2;
+    clearDropMarks();
+    dropLayer(dragLayerId, node.dataset.id, after);
+  });
+}
+function dropLayer(dragId, targetId, after){
+  // Work in list order (front -> back), then translate back into z values.
+  let ids = state.els.slice().sort((a,b)=>b.z-a.z).map(e=>e.id);
+  ids = ids.filter(id=>id!==dragId);
+  const ti = ids.indexOf(targetId);
+  if(ti === -1) return;
+  ids.splice(after ? ti+1 : ti, 0, dragId);
+  applyOrder(ids.slice().reverse());   // reverse => back -> front
+}
+
+// ---------------- Stacking order ----------------
+function orderedEls(){ return state.els.slice().sort((a,b)=>a.z-b.z); }  // back -> front
+// Assign sequential z from an array of ids or elements ordered back -> front.
+function applyOrder(order){
+  order.forEach((item, idx)=>{
+    const el = typeof item === 'string' ? state.els.find(e=>e.id===item) : item;
+    if(!el) return;
+    el.z = idx + 1;
+    const n = $(el.id);
+    if(n) n.style.zIndex = el.z;
+  });
+  renderLayers();
+}
+function changeOrderSelected(how){
+  const sel = selectedEls();
+  if(!sel.length) return;
+  let arr = orderedEls();
+  const inSel = (el)=>sel.indexOf(el) > -1;
+  if(how==='front'){
+    arr = arr.filter(e=>!inSel(e)).concat(arr.filter(inSel));
+  } else if(how==='back'){
+    arr = arr.filter(inSel).concat(arr.filter(e=>!inSel(e)));
+  } else if(how==='forward'){
+    for(let i=arr.length-2; i>=0; i--){
+      if(inSel(arr[i]) && !inSel(arr[i+1])){ const t=arr[i]; arr[i]=arr[i+1]; arr[i+1]=t; }
+    }
+  } else if(how==='backward'){
+    for(let i=1; i<arr.length; i++){
+      if(inSel(arr[i]) && !inSel(arr[i-1])){ const t=arr[i]; arr[i]=arr[i-1]; arr[i-1]=t; }
+    }
+  }
+  applyOrder(arr);
 }
 
 function isSelected(id){ return state.selectedIds.indexOf(id) > -1; }
@@ -981,16 +1186,33 @@ function fieldXYWH(el){
   </div>`;
 }
 
+// Shared align palette. `attr` is the data-attribute the caller binds to.
+function alignGridHtml(attr, disabled){
+  const d = disabled ? ' disabled' : '';
+  return `<div class="align-grid">
+      <button ${attr}="left" title="左揃え"${d}>${ICONS.alignLeft}</button>
+      <button ${attr}="hcenter" title="水平方向中央に整列"${d}>${ICONS.alignHCenter}</button>
+      <button ${attr}="right" title="右揃え"${d}>${ICONS.alignRight}</button>
+      <button ${attr}="top" title="上揃え"${d}>${ICONS.alignTop}</button>
+      <button ${attr}="vmiddle" title="垂直方向中央に整列"${d}>${ICONS.alignVMiddle}</button>
+      <button ${attr}="bottom" title="下揃え"${d}>${ICONS.alignBottom}</button>
+    </div>`;
+}
+
+function orderFields(){
+  return `<div class="field"><label>重ね順</label>
+    <div class="order-grid">
+      <button data-order="front" title="最前面へ">${ICONS.orderFront}</button>
+      <button data-order="forward" title="前面へ">${ICONS.orderForward}</button>
+      <button data-order="backward" title="背面へ">${ICONS.orderBackward}</button>
+      <button data-order="back" title="最背面へ">${ICONS.orderBack}</button>
+    </div>
+  </div>`;
+}
+
 function alignFields(){
   return `<div class="field"><label>キャンバス内で整列</label>
-    <div class="align-grid">
-      <button data-align-el="left" title="左揃え">⬅</button>
-      <button data-align-el="hcenter" title="左右中央">↔</button>
-      <button data-align-el="right" title="右揃え">➡</button>
-      <button data-align-el="top" title="上揃え">⬆</button>
-      <button data-align-el="vmiddle" title="上下中央">↕</button>
-      <button data-align-el="bottom" title="下揃え">⬇</button>
-    </div>
+    ${alignGridHtml('data-align-el')}
   </div>`;
 }
 
@@ -1092,22 +1314,16 @@ function renderMultiInspector(){
   const canDist = n >= 3;
   inspector.innerHTML = `
     <div class="multi-head">${n}個の要素を選択中</div>
-    <div class="field"><label>整列(選択範囲を基準)</label>
-      <div class="align-grid">
-        <button data-msalign="left" title="左揃え">⬅</button>
-        <button data-msalign="hcenter" title="左右中央">↔</button>
-        <button data-msalign="right" title="右揃え">➡</button>
-        <button data-msalign="top" title="上揃え">⬆</button>
-        <button data-msalign="vmiddle" title="上下中央">↕</button>
-        <button data-msalign="bottom" title="下揃え">⬇</button>
-      </div>
+    <div class="field"><label>オブジェクトの整列</label>
+      ${alignGridHtml('data-msalign')}
     </div>
-    <div class="field"><label>等間隔に配置${canDist?'':'(3個以上で有効)'}</label>
+    <div class="field"><label>等間隔に分布${canDist?'':'(3個以上で有効)'}</label>
       <div class="dist-grid">
-        <button data-msdist="h" title="水平方向に等間隔"${canDist?'':' disabled style="opacity:.4;cursor:default;"'}>⇔ 水平</button>
-        <button data-msdist="v" title="垂直方向に等間隔"${canDist?'':' disabled style="opacity:.4;cursor:default;"'}>⇕ 垂直</button>
+        <button data-msdist="h" title="水平方向等間隔に分布"${canDist?'':' disabled'}>${ICONS.distH}</button>
+        <button data-msdist="v" title="垂直方向等間隔に分布"${canDist?'':' disabled'}>${ICONS.distV}</button>
       </div>
     </div>
+    ${orderFields()}
     <hr class="sep">
     <div class="row-actions">
       <button class="btn" data-msact="dup">複製</button>
@@ -1115,6 +1331,7 @@ function renderMultiInspector(){
     </div>`;
   inspector.querySelectorAll('[data-msalign]').forEach(b=>b.addEventListener('click', ()=>alignSelection(b.dataset.msalign)));
   inspector.querySelectorAll('[data-msdist]').forEach(b=>b.addEventListener('click', ()=>{ if(!b.disabled) distributeSelection(b.dataset.msdist); }));
+  inspector.querySelectorAll('[data-order]').forEach(b=>b.addEventListener('click', ()=>changeOrderSelected(b.dataset.order)));
   inspector.querySelectorAll('[data-msact]').forEach(b=>b.addEventListener('click', ()=>{
     if(b.dataset.msact==='dup') duplicateSelected();
     else if(b.dataset.msact==='del') deleteSelected();
@@ -1133,11 +1350,8 @@ function renderInspector(){
   else if(el.type==='rect' || el.type==='ellipse' || el.type==='vector') html += shapeFields(el);
   else if(el.type==='image') html += imageFields(el);
   html += animFields(el);
+  html += '<hr class="sep">' + orderFields();
   html += `<div class="row-actions">
-    <button class="btn" data-act="front">最前面</button>
-    <button class="btn" data-act="back">最背面</button>
-  </div>
-  <div class="row-actions">
     <button class="btn" data-act="dup">複製</button>
     <button class="btn" data-act="del">削除</button>
   </div>`;
@@ -1231,10 +1445,10 @@ function bindInspectorEvents(el){
     alignElement(el, b.dataset.alignEl);
   }));
 
+  inspector.querySelectorAll('[data-order]').forEach(b=>b.addEventListener('click', ()=>changeOrderSelected(b.dataset.order)));
+
   inspector.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click', ()=>{
     const act = b.dataset.act;
-    if(act==='front'){ el.z = nextZ(); updateNode(el); }
-    if(act==='back'){ el.z = (state.els.length ? Math.min.apply(null, state.els.map(e=>e.z)) : 1) - 1; updateNode(el); }
     if(act==='dup'){ duplicateElement(el.id); }
     if(act==='del'){ deleteElement(el.id); }
   }));
