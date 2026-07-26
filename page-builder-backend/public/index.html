@@ -123,11 +123,18 @@ button,select,input{font-family:inherit;}
 .zoom-bar .zoom-fit{font-size:12px;border-left:1px solid var(--border);}
 @media (max-width:880px){ .zoom-bar{right:12px;bottom:12px;} }
 .align-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
-.align-grid button{
+.align-grid button,.dist-grid button{
   background:var(--bg-panel-2);border:1px solid var(--border);color:var(--text);
   padding:8px 0;border-radius:6px;cursor:pointer;font-size:14px;
 }
-.align-grid button:hover{border-color:var(--accent);color:var(--accent);}
+.align-grid button:hover,.dist-grid button:hover{border-color:var(--accent);color:var(--accent);}
+.dist-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.multi-head{font-size:13px;color:var(--text);margin-bottom:12px;font-weight:600;}
+.marquee{
+  position:absolute;border:1px solid var(--accent);background:var(--accent-soft);
+  z-index:400;pointer-events:none;
+}
+.page.multi-select .handle{display:none;}
 .resize-h{
   position:absolute;left:0;bottom:-15px;width:100%;height:15px;cursor:ns-resize;
   display:flex;align-items:center;justify-content:center;z-index:9999;
@@ -300,6 +307,7 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0;}
 const state = {
   els: [],
   selectedId: null,
+  selectedIds: [],
   idCounter: 1,
   canvasWidth: 1200,
   canvasHeight: 1600,
@@ -575,18 +583,28 @@ function attachDrag(node, el){
     if(node.isContentEditable) return;
     if(e.target.classList.contains('handle')) return;
     e.stopPropagation();
-    selectElement(el.id);
+    // Shift/Ctrl click toggles this element in the selection (no drag).
+    if(e.shiftKey || e.ctrlKey || e.metaKey){
+      selectElement(el.id, true);
+      return;
+    }
+    // Plain click on an unselected element selects just it; clicking one that
+    // is already part of a multi-selection keeps the whole group and drags it.
+    if(!isSelected(el.id)) setSelection([el.id]);
+    const movers = selectedEls().map(m=>({
+      el: m, ox: m.x, oy: m.y,
+      opts: m.type==='vector' ? m.points.map(p=>({x:p.x,y:p.y})) : null
+    }));
     const startX = e.clientX, startY = e.clientY;
-    const origX = el.x, origY = el.y;
-    const origPoints = el.type==='vector' ? el.points.map(p=>({x:p.x,y:p.y})) : null;
     try{ node.setPointerCapture(e.pointerId); }catch(err){}
     function onMove(ev){
       const dx = (ev.clientX - startX) / state.zoom, dy = (ev.clientY - startY) / state.zoom;
-      el.x = origX + dx;
-      el.y = origY + dy;
-      if(origPoints){ el.points = origPoints.map(p=>({x:p.x+dx, y:p.y+dy})); }
-      node.style.left = el.x+'px';
-      node.style.top = el.y+'px';
+      movers.forEach(m=>{
+        m.el.x = m.ox + dx; m.el.y = m.oy + dy;
+        if(m.opts){ m.el.points = m.opts.map(p=>({x:p.x+dx, y:p.y+dy})); }
+        const n = $(m.el.id);
+        if(n){ n.style.left = m.el.x+'px'; n.style.top = m.el.y+'px'; }
+      });
       updateXYWHFields();
     }
     function onUp(ev){
@@ -693,7 +711,7 @@ function buildNode(el){
   node.style.width = el.w+'px';
   node.style.height = el.h+'px';
   node.style.zIndex = el.z;
-  if(el.id===state.selectedId) node.classList.add('selected');
+  if(isSelected(el.id)) node.classList.add('selected');
 
   if(el.type==='text'){
     node.contentEditable = 'false';
@@ -817,37 +835,124 @@ function renderLayers(){
     else if(el.type==='ellipse') label = '円';
     else if(el.type==='image') label = '画像';
     else if(el.type==='vector') label = 'ベクター図形';
-    return `<div class="layer-item ${el.id===state.selectedId?'active':''}" data-id="${el.id}">
+    return `<div class="layer-item ${isSelected(el.id)?'active':''}" data-id="${el.id}">
       <span class="lic">${iconMap[el.type]}</span><span>${escapeHtml(label)}</span>
     </div>`;
   }).join('');
   layerList.querySelectorAll('.layer-item').forEach(n=>{
-    n.addEventListener('click', ()=>selectElement(n.dataset.id));
+    n.addEventListener('click', (ev)=>selectElement(n.dataset.id, ev.shiftKey||ev.ctrlKey||ev.metaKey));
   });
 }
 
-function selectElement(id){
-  state.selectedId = id;
-  document.querySelectorAll('.el').forEach(n=>n.classList.toggle('selected', n.id===id));
-  document.querySelectorAll('.layer-item').forEach(n=>n.classList.toggle('active', n.dataset.id===id));
+function isSelected(id){ return state.selectedIds.indexOf(id) > -1; }
+function selectedEls(){ return state.selectedIds.map(id=>state.els.find(e=>e.id===id)).filter(Boolean); }
+function syncSelectionDom(){
+  document.querySelectorAll('.el').forEach(n=>n.classList.toggle('selected', isSelected(n.id)));
+  document.querySelectorAll('.layer-item').forEach(n=>n.classList.toggle('active', isSelected(n.dataset.id)));
+  pageCanvas.classList.toggle('multi-select', state.selectedIds.length > 1);
+}
+function setSelection(ids){
+  state.selectedIds = ids.slice();
+  state.selectedId = ids.length ? ids[ids.length-1] : null;
+  syncSelectionDom();
   renderInspector();
-  if(window.innerWidth <= 880) inspector.classList.add('open');
+  if(state.selectedIds.length && window.innerWidth <= 880) inspector.classList.add('open');
 }
 
-function deselectAll(){
-  state.selectedId = null;
-  document.querySelectorAll('.el').forEach(n=>n.classList.remove('selected'));
-  document.querySelectorAll('.layer-item').forEach(n=>n.classList.remove('active'));
-  renderInspector();
+function selectElement(id, additive){
+  if(additive){
+    const i = state.selectedIds.indexOf(id);
+    if(i > -1) state.selectedIds.splice(i, 1); else state.selectedIds.push(id);
+    setSelection(state.selectedIds);
+  } else {
+    setSelection([id]);
+  }
 }
+
+function deselectAll(){ setSelection([]); }
 
 function deleteElement(id){
   state.els = state.els.filter(e=>e.id!==id);
   const node = $(id);
   if(node) node.remove();
-  if(state.selectedId===id) state.selectedId = null;
-  renderInspector();
+  state.selectedIds = state.selectedIds.filter(sid=>sid!==id);
+  setSelection(state.selectedIds);
   renderLayers();
+}
+
+function deleteSelected(){
+  if(!state.selectedIds.length) return;
+  const ids = state.selectedIds.slice();
+  state.els = state.els.filter(e=>ids.indexOf(e.id) === -1);
+  ids.forEach(id=>{ const n=$(id); if(n) n.remove(); });
+  setSelection([]);
+  renderLayers();
+}
+
+function duplicateSelected(){
+  const els = selectedEls();
+  if(!els.length) return;
+  const newIds = [];
+  els.forEach(el=>{
+    const copy = JSON.parse(JSON.stringify(el));
+    copy.id = uid();
+    copy.x += 24; copy.y += 24;
+    if(copy.type==='vector'){ copy.points = copy.points.map(p=>({x:p.x+24, y:p.y+24})); }
+    copy.z = nextZ();
+    state.els.push(copy);
+    newIds.push(copy.id);
+  });
+  renderAll();
+  setSelection(newIds);
+}
+
+// ---------------- Multi-element align / distribute ----------------
+function selectionBBox(els){
+  const minX = Math.min.apply(null, els.map(e=>e.x));
+  const minY = Math.min.apply(null, els.map(e=>e.y));
+  const maxX = Math.max.apply(null, els.map(e=>e.x+e.w));
+  const maxY = Math.max.apply(null, els.map(e=>e.y+e.h));
+  return { minX, minY, maxX, maxY, cx:(minX+maxX)/2, cy:(minY+maxY)/2 };
+}
+function moveElTo(el, nx, ny){
+  const dx = nx - el.x, dy = ny - el.y;
+  if(el.type==='vector'){ el.points = el.points.map(p=>({x:p.x+dx, y:p.y+dy})); }
+  el.x = nx; el.y = ny;
+  updateNode(el);
+}
+function alignSelection(how){
+  const els = selectedEls();
+  if(els.length < 2) return;
+  const b = selectionBBox(els);
+  els.forEach(el=>{
+    if(how==='left') moveElTo(el, b.minX, el.y);
+    else if(how==='right') moveElTo(el, b.maxX - el.w, el.y);
+    else if(how==='hcenter') moveElTo(el, Math.round(b.cx - el.w/2), el.y);
+    else if(how==='top') moveElTo(el, el.x, b.minY);
+    else if(how==='bottom') moveElTo(el, el.x, b.maxY - el.h);
+    else if(how==='vmiddle') moveElTo(el, el.x, Math.round(b.cy - el.h/2));
+  });
+  updateXYWHFields();
+}
+function distributeSelection(axis){
+  const els = selectedEls();
+  if(els.length < 3) return;
+  if(axis==='h'){
+    els.sort((a,b)=>a.x-b.x);
+    const min = els[0].x, max = els[els.length-1].x + els[els.length-1].w;
+    const total = els.reduce((s,e)=>s+e.w, 0);
+    const gap = (max - min - total) / (els.length - 1);
+    let cur = min;
+    els.forEach(el=>{ moveElTo(el, Math.round(cur), el.y); cur += el.w + gap; });
+  } else {
+    els.sort((a,b)=>a.y-b.y);
+    const min = els[0].y, max = els[els.length-1].y + els[els.length-1].h;
+    const total = els.reduce((s,e)=>s+e.h, 0);
+    const gap = (max - min - total) / (els.length - 1);
+    let cur = min;
+    els.forEach(el=>{ moveElTo(el, el.x, Math.round(cur)); cur += el.h + gap; });
+  }
+  updateXYWHFields();
 }
 
 function duplicateElement(id){
@@ -982,10 +1087,45 @@ function animFields(el){
   <div class="field"><label id="lblDelay">遅延 ${el.anim.delay}ms</label><input type="range" id="fAnimDelay" min="0" max="2000" step="100" value="${el.anim.delay}"></div>`;
 }
 
+function renderMultiInspector(){
+  const n = state.selectedIds.length;
+  const canDist = n >= 3;
+  inspector.innerHTML = `
+    <div class="multi-head">${n}個の要素を選択中</div>
+    <div class="field"><label>整列(選択範囲を基準)</label>
+      <div class="align-grid">
+        <button data-msalign="left" title="左揃え">⬅</button>
+        <button data-msalign="hcenter" title="左右中央">↔</button>
+        <button data-msalign="right" title="右揃え">➡</button>
+        <button data-msalign="top" title="上揃え">⬆</button>
+        <button data-msalign="vmiddle" title="上下中央">↕</button>
+        <button data-msalign="bottom" title="下揃え">⬇</button>
+      </div>
+    </div>
+    <div class="field"><label>等間隔に配置${canDist?'':'(3個以上で有効)'}</label>
+      <div class="dist-grid">
+        <button data-msdist="h" title="水平方向に等間隔"${canDist?'':' disabled style="opacity:.4;cursor:default;"'}>⇔ 水平</button>
+        <button data-msdist="v" title="垂直方向に等間隔"${canDist?'':' disabled style="opacity:.4;cursor:default;"'}>⇕ 垂直</button>
+      </div>
+    </div>
+    <hr class="sep">
+    <div class="row-actions">
+      <button class="btn" data-msact="dup">複製</button>
+      <button class="btn" data-msact="del">削除</button>
+    </div>`;
+  inspector.querySelectorAll('[data-msalign]').forEach(b=>b.addEventListener('click', ()=>alignSelection(b.dataset.msalign)));
+  inspector.querySelectorAll('[data-msdist]').forEach(b=>b.addEventListener('click', ()=>{ if(!b.disabled) distributeSelection(b.dataset.msdist); }));
+  inspector.querySelectorAll('[data-msact]').forEach(b=>b.addEventListener('click', ()=>{
+    if(b.dataset.msact==='dup') duplicateSelected();
+    else if(b.dataset.msact==='del') deleteSelected();
+  }));
+}
+
 function renderInspector(){
+  if(state.selectedIds.length > 1){ renderMultiInspector(); return; }
   const el = state.els.find(e=>e.id===state.selectedId);
   if(!el){
-    inspector.innerHTML = '<div class="empty-state">要素をクリックして選択してください。<br>ドラッグで移動、右下の■で拡大縮小できます。</div>';
+    inspector.innerHTML = '<div class="empty-state">要素をクリックして選択してください。<br>ドラッグで移動、右下の■で拡大縮小できます。<br><br>Shift+クリックで複数選択、空白をドラッグで範囲選択できます。</div>';
     return;
   }
   let html = fieldXYWH(el) + alignFields() + '<hr class="sep">';
@@ -1114,8 +1254,47 @@ pageCanvas.addEventListener('pointerdown', (e)=>{
     }
     return;
   }
-  if(e.target===pageCanvas) deselectAll();
+  if(e.target===pageCanvas) startMarquee(e);
 });
+
+function startMarquee(e){
+  const rect = pageCanvas.getBoundingClientRect();
+  const sx = (e.clientX - rect.left) / state.zoom, sy = (e.clientY - rect.top) / state.zoom;
+  const additive = e.shiftKey || e.ctrlKey || e.metaKey;
+  const box = document.createElement('div');
+  box.className = 'marquee';
+  pageCanvas.insertBefore(box, resizeH);
+  let moved = false, curX = sx, curY = sy;
+  try{ pageCanvas.setPointerCapture(e.pointerId); }catch(err){}
+  function onMove(ev){
+    curX = (ev.clientX - rect.left) / state.zoom;
+    curY = (ev.clientY - rect.top) / state.zoom;
+    const x = Math.min(sx,curX), y = Math.min(sy,curY), w = Math.abs(curX-sx), h = Math.abs(curY-sy);
+    if(w > 3 || h > 3) moved = true;
+    box.style.left = x+'px'; box.style.top = y+'px'; box.style.width = w+'px'; box.style.height = h+'px';
+  }
+  function onUp(ev){
+    try{ pageCanvas.releasePointerCapture(ev.pointerId); }catch(err){}
+    pageCanvas.removeEventListener('pointermove', onMove);
+    pageCanvas.removeEventListener('pointerup', onUp);
+    box.remove();
+    if(moved){
+      const x = Math.min(sx,curX), y = Math.min(sy,curY), w = Math.abs(curX-sx), h = Math.abs(curY-sy);
+      const hit = state.els.filter(el=> el.x < x+w && el.x+el.w > x && el.y < y+h && el.y+el.h > y).map(el=>el.id);
+      if(additive){
+        const set = state.selectedIds.slice();
+        hit.forEach(id=>{ if(set.indexOf(id)===-1) set.push(id); });
+        setSelection(set);
+      } else {
+        setSelection(hit);
+      }
+    } else if(!additive){
+      deselectAll();
+    }
+  }
+  pageCanvas.addEventListener('pointermove', onMove);
+  pageCanvas.addEventListener('pointerup', onUp);
+}
 
 pageCanvas.addEventListener('dblclick', ()=>{
   if(state.drawingMode) finishPenPath(true);
@@ -1131,9 +1310,31 @@ document.addEventListener('keydown', (e)=>{
   if(e.target.isContentEditable) return;
   const tag = (e.target.tagName||'').toUpperCase();
   if(['INPUT','TEXTAREA','SELECT'].includes(tag)) return;
-  if((e.key==='Delete' || e.key==='Backspace') && state.selectedId){
+  if((e.key==='Delete' || e.key==='Backspace') && state.selectedIds.length){
     e.preventDefault();
-    deleteElement(state.selectedId);
+    deleteSelected();
+    return;
+  }
+  if(e.key==='Escape' && state.selectedIds.length){
+    deselectAll();
+    return;
+  }
+  if((e.ctrlKey || e.metaKey) && (e.key==='a' || e.key==='A')){
+    e.preventDefault();
+    setSelection(state.els.map(el=>el.id));
+    return;
+  }
+  if(state.selectedIds.length && ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){
+    e.preventDefault();
+    const step = e.shiftKey ? 10 : 1;
+    let dx = 0, dy = 0;
+    if(e.key==='ArrowLeft') dx = -step;
+    else if(e.key==='ArrowRight') dx = step;
+    else if(e.key==='ArrowUp') dy = -step;
+    else if(e.key==='ArrowDown') dy = step;
+    selectedEls().forEach(el=>{ moveElTo(el, el.x+dx, el.y+dy); });
+    updateXYWHFields();
+    return;
   }
 });
 
@@ -1464,6 +1665,7 @@ function applyLoadedProject(data){
   state.els.forEach(el=>{ const n = parseInt(String(el.id).replace(/[^0-9]/g,''),10); if(!isNaN(n)) maxNum = Math.max(maxNum,n); });
   state.idCounter = maxNum+1;
   state.selectedId = null;
+  state.selectedIds = [];
   syncCanvasBox();
   const cbg = $('canvasBg'); if(cbg) cbg.value = state.canvasBg;
   renderAll();
