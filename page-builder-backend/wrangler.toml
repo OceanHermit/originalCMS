@@ -9,7 +9,7 @@ compatibility_date = "2026-07-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "page-builder-db"
-database_id = "REPLACE_AFTER_RUNNING_D1_CREATE"
+database_id = "c1d37a99-df30-4720-be85-123589e30a2b"
 
 [[r2_buckets]]
 binding = "PROJECTS_BUCKET"
