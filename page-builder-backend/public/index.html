@@ -105,9 +105,29 @@ button,select,input{font-family:inherit;}
 .canvas-area{
   flex:1;overflow:auto;background:var(--canvas-surround);
   background-image:radial-gradient(circle,#cfcabb 1px,transparent 1px);
-  background-size:22px 22px;display:flex;justify-content:center;padding:56px 24px 120px;
+  background-size:22px 22px;display:flex;justify-content:center;align-items:flex-start;padding:56px 24px 120px;
 }
-.page{position:relative;background:#fff;box-shadow:0 14px 44px rgba(0,0,0,.28);flex:0 0 auto;}
+.page-scaler{flex:0 0 auto;position:relative;}
+.page{position:relative;background:#fff;box-shadow:0 14px 44px rgba(0,0,0,.28);transform-origin:top left;}
+.zoom-bar{
+  position:fixed;right:270px;bottom:18px;z-index:300;display:flex;align-items:center;gap:2px;
+  background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:4px;
+  box-shadow:0 6px 20px rgba(0,0,0,.3);
+}
+.zoom-bar button{
+  background:none;border:none;color:var(--text);cursor:pointer;font-size:14px;
+  padding:6px 10px;border-radius:7px;min-width:34px;
+}
+.zoom-bar button:hover{background:var(--bg-panel-2);}
+.zoom-bar .zoom-num{min-width:52px;font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums;}
+.zoom-bar .zoom-fit{font-size:12px;border-left:1px solid var(--border);}
+@media (max-width:880px){ .zoom-bar{right:12px;bottom:12px;} }
+.align-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.align-grid button{
+  background:var(--bg-panel-2);border:1px solid var(--border);color:var(--text);
+  padding:8px 0;border-radius:6px;cursor:pointer;font-size:14px;
+}
+.align-grid button:hover{border-color:var(--accent);color:var(--accent);}
 .resize-h{
   position:absolute;left:0;bottom:-15px;width:100%;height:15px;cursor:ns-resize;
   display:flex;align-items:center;justify-content:center;z-index:9999;
@@ -121,8 +141,16 @@ button,select,input{font-family:inherit;}
   border-radius:3px;z-index:10;display:none;
 }
 .el.selected .handle{display:block;}
-.handle.se{right:-7px;bottom:-7px;cursor:se-resize;}
+.handle.nw{left:-7px;top:-7px;cursor:nwse-resize;}
+.handle.n{left:50%;top:-7px;transform:translateX(-50%);cursor:ns-resize;}
+.handle.ne{right:-7px;top:-7px;cursor:nesw-resize;}
+.handle.e{right:-7px;top:50%;transform:translateY(-50%);cursor:ew-resize;}
+.handle.se{right:-7px;bottom:-7px;cursor:nwse-resize;}
+.handle.s{left:50%;bottom:-7px;transform:translateX(-50%);cursor:ns-resize;}
+.handle.sw{left:-7px;bottom:-7px;cursor:nesw-resize;}
+.handle.w{left:-7px;top:50%;transform:translateY(-50%);cursor:ew-resize;}
 .el-text{outline:none;line-height:1.4;overflow:hidden;padding:2px;}
+.el-text.vertical{writing-mode:vertical-rl;text-orientation:mixed;}
 .el-image img{width:100%;height:100%;display:block;pointer-events:none;}
 .el-vector svg{display:block;pointer-events:none;}
 
@@ -237,10 +265,18 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0;}
       </div>
     </aside>
     <main class="canvas-area" id="canvasArea">
-      <div class="page" id="pageCanvas">
-        <div class="resize-h" id="resizeH"></div>
+      <div class="page-scaler" id="pageScaler">
+        <div class="page" id="pageCanvas">
+          <div class="resize-h" id="resizeH"></div>
+        </div>
       </div>
     </main>
+    <div class="zoom-bar" id="zoomBar">
+      <button id="zoomOut" title="縮小">−</button>
+      <button class="zoom-num" id="zoomLabel" title="100%に戻す">100%</button>
+      <button id="zoomIn" title="拡大">＋</button>
+      <button class="zoom-fit" id="zoomFit" title="ページ全体を画面に合わせる">画面に合わせる</button>
+    </div>
     <aside class="inspector" id="inspector">
       <div class="empty-state">要素をクリックして選択してください。<br>ドラッグで移動、右下の■で拡大縮小できます。</div>
     </aside>
@@ -270,6 +306,8 @@ const state = {
   canvasBg: '#ffffff',
   drawingMode: false,
   tempPoints: [],
+  zoom: 1,
+  autoFit: true,
 };
 
 const FONTS = [
@@ -292,6 +330,7 @@ const ANIMS = [
 
 // ---------------- DOM refs ----------------
 const pageCanvas = document.getElementById('pageCanvas');
+const pageScaler = document.getElementById('pageScaler');
 const resizeH = document.getElementById('resizeH');
 const inspector = document.getElementById('inspector');
 const layerList = document.getElementById('layerList');
@@ -307,6 +346,35 @@ let drawOverlay = null;
 function uid(){ return 'el' + (state.idCounter++); }
 function nextZ(){ return state.els.length ? Math.max.apply(null, state.els.map(e=>e.z)) + 1 : 1; }
 function $(id){ return document.getElementById(id); }
+function clamp(v,min,max){ return Math.min(max, Math.max(min, v)); }
+
+// ---------------- Zoom ----------------
+function applyZoom(){
+  pageCanvas.style.transform = 'scale(' + state.zoom + ')';
+  pageScaler.style.width = (state.canvasWidth * state.zoom) + 'px';
+  pageScaler.style.height = (state.canvasHeight * state.zoom) + 'px';
+  const zl = $('zoomLabel'); if(zl) zl.textContent = Math.round(state.zoom * 100) + '%';
+}
+function syncCanvasBox(){
+  pageCanvas.style.width = state.canvasWidth + 'px';
+  pageCanvas.style.height = state.canvasHeight + 'px';
+  pageCanvas.style.background = state.canvasBg;
+  applyZoom();
+}
+function setZoom(z, manual){
+  state.zoom = clamp(z, 0.1, 3);
+  if(manual) state.autoFit = false;
+  applyZoom();
+}
+function zoomToFit(){
+  const availW = canvasArea.clientWidth - 48;
+  const availH = canvasArea.clientHeight - 100;
+  if(availW <= 0) return;
+  const z = Math.min(availW / state.canvasWidth, availH / state.canvasHeight, 1);
+  state.zoom = clamp(z, 0.1, 1);
+  state.autoFit = true;
+  applyZoom();
+}
 function escapeHtml(str){
   return String(str==null?'':str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
@@ -372,7 +440,7 @@ function addElement(type){
   const base = { id, type, z: nextZ(), anim:{type:'none',duration:600,delay:0,trigger:'scroll'} };
   let el;
   if(type==='text'){
-    el = Object.assign(base, {x:100+offset,y:100+offset,w:400,h:60,text:'テキストを入力',fontSize:24,color:'#1a1a1a',fontWeight:'400',textAlign:'left',fontFamily:FONTS[0].value});
+    el = Object.assign(base, {x:100+offset,y:100+offset,w:400,h:60,text:'テキストを入力',fontSize:24,color:'#1a1a1a',fontWeight:'400',textAlign:'left',fontFamily:FONTS[0].value,writingMode:'horizontal'});
   } else if(type==='rect'){
     el = Object.assign(base, {x:100+offset,y:100+offset,w:180,h:100,fill:{mode:'solid',color:'#6c5ce7',gradType:'linear',from:'#6c5ce7',to:'#00b894',angle:90},borderColor:'',borderWidth:0,radius:8});
   } else if(type==='ellipse'){
@@ -513,7 +581,7 @@ function attachDrag(node, el){
     const origPoints = el.type==='vector' ? el.points.map(p=>({x:p.x,y:p.y})) : null;
     try{ node.setPointerCapture(e.pointerId); }catch(err){}
     function onMove(ev){
-      const dx = ev.clientX - startX, dy = ev.clientY - startY;
+      const dx = (ev.clientX - startX) / state.zoom, dy = (ev.clientY - startY) / state.zoom;
       el.x = origX + dx;
       el.y = origY + dy;
       if(origPoints){ el.points = origPoints.map(p=>({x:p.x+dx, y:p.y+dy})); }
@@ -531,21 +599,33 @@ function attachDrag(node, el){
   });
 }
 
-function startResize(e, el, node){
+function startResize(e, el, node, dir){
   e.stopPropagation();
   e.preventDefault();
+  dir = dir || 'se';
   const startX = e.clientX, startY = e.clientY;
   const origW = el.w, origH = el.h, origX = el.x, origY = el.y;
   const origPoints = el.type==='vector' ? el.points.map(p=>({x:p.x,y:p.y})) : null;
-  try{ node.setPointerCapture(e.pointerId); }catch(err){}
+  const west = dir.indexOf('w') > -1, east = dir.indexOf('e') > -1;
+  const north = dir.indexOf('n') > -1, south = dir.indexOf('s') > -1;
+  const handleEl = e.currentTarget;
+  try{ handleEl.setPointerCapture(e.pointerId); }catch(err){}
   function onMove(ev){
-    const newW = Math.max(20, origW + (ev.clientX - startX));
-    const newH = Math.max(20, origH + (ev.clientY - startY));
+    const dx = (ev.clientX - startX) / state.zoom, dy = (ev.clientY - startY) / state.zoom;
+    let newX = origX, newY = origY, newW = origW, newH = origH;
+    if(east)  newW = Math.max(20, origW + dx);
+    if(west){ newW = Math.max(20, origW - dx); newX = origX + (origW - newW); }
+    if(south) newH = Math.max(20, origH + dy);
+    if(north){ newH = Math.max(20, origH - dy); newY = origY + (origH - newH); }
     if(origPoints){
-      const scaleX = newW/origW, scaleY = newH/origH;
-      el.points = origPoints.map(p=>({ x: origX + (p.x-origX)*scaleX, y: origY + (p.y-origY)*scaleY }));
+      el.points = origPoints.map(p=>({
+        x: newX + (origW ? (p.x - origX) / origW : 0) * newW,
+        y: newY + (origH ? (p.y - origY) / origH : 0) * newH
+      }));
     }
-    el.w = newW; el.h = newH;
+    el.x = newX; el.y = newY; el.w = newW; el.h = newH;
+    node.style.left = el.x+'px';
+    node.style.top = el.y+'px';
     node.style.width = el.w+'px';
     node.style.height = el.h+'px';
     if(el.type==='vector'){
@@ -556,12 +636,12 @@ function startResize(e, el, node){
     updateXYWHFields();
   }
   function onUp(ev){
-    try{ node.releasePointerCapture(ev.pointerId); }catch(err){}
-    node.removeEventListener('pointermove', onMove);
-    node.removeEventListener('pointerup', onUp);
+    try{ handleEl.releasePointerCapture(ev.pointerId); }catch(err){}
+    handleEl.removeEventListener('pointermove', onMove);
+    handleEl.removeEventListener('pointerup', onUp);
   }
-  node.addEventListener('pointermove', onMove);
-  node.addEventListener('pointerup', onUp);
+  handleEl.addEventListener('pointermove', onMove);
+  handleEl.addEventListener('pointerup', onUp);
 }
 
 // ---------------- Vector SVG ----------------
@@ -624,6 +704,7 @@ function buildNode(el){
     node.style.fontWeight = el.fontWeight;
     node.style.textAlign = el.textAlign;
     node.style.fontFamily = el.fontFamily;
+    if(el.writingMode==='vertical') node.classList.add('vertical');
     node.addEventListener('input', ()=>{ el.text = node.innerText; });
     node.addEventListener('dblclick', (e)=>{
       e.stopPropagation();
@@ -659,10 +740,13 @@ function buildNode(el){
   }
 
   attachDrag(node, el);
-  const handle = document.createElement('div');
-  handle.className = 'handle se';
-  handle.addEventListener('pointerdown', (e)=>startResize(e, el, node));
-  node.appendChild(handle);
+  const dirs = (el.type==='vector' || el.type==='line') ? ['nw','ne','se','sw'] : ['nw','n','ne','e','se','s','sw','w'];
+  dirs.forEach(dir=>{
+    const handle = document.createElement('div');
+    handle.className = 'handle ' + dir;
+    handle.addEventListener('pointerdown', (e)=>startResize(e, el, node, dir));
+    node.appendChild(handle);
+  });
 
   return node;
 }
@@ -681,6 +765,7 @@ function updateNode(el){
     node.style.fontWeight = el.fontWeight;
     node.style.textAlign = el.textAlign;
     node.style.fontFamily = el.fontFamily;
+    node.classList.toggle('vertical', el.writingMode==='vertical');
   } else if(el.type==='rect'){
     node.style.background = fillToCss(el.fill);
     node.style.borderRadius = el.radius+'px';
@@ -791,6 +876,34 @@ function fieldXYWH(el){
   </div>`;
 }
 
+function alignFields(){
+  return `<div class="field"><label>キャンバス内で整列</label>
+    <div class="align-grid">
+      <button data-align-el="left" title="左揃え">⬅</button>
+      <button data-align-el="hcenter" title="左右中央">↔</button>
+      <button data-align-el="right" title="右揃え">➡</button>
+      <button data-align-el="top" title="上揃え">⬆</button>
+      <button data-align-el="vmiddle" title="上下中央">↕</button>
+      <button data-align-el="bottom" title="下揃え">⬇</button>
+    </div>
+  </div>`;
+}
+
+function alignElement(el, how){
+  let nx = el.x, ny = el.y;
+  if(how==='left') nx = 0;
+  else if(how==='hcenter') nx = Math.round((state.canvasWidth - el.w) / 2);
+  else if(how==='right') nx = state.canvasWidth - el.w;
+  else if(how==='top') ny = 0;
+  else if(how==='vmiddle') ny = Math.round((state.canvasHeight - el.h) / 2);
+  else if(how==='bottom') ny = state.canvasHeight - el.h;
+  const dx = nx - el.x, dy = ny - el.y;
+  if(el.type==='vector'){ el.points = el.points.map(p=>({x:p.x+dx, y:p.y+dy})); }
+  el.x = nx; el.y = ny;
+  updateNode(el);
+  updateXYWHFields();
+}
+
 function textFields(el){
   const fontOpts = FONTS.map(f=>`<option value="${f.value}" ${f.value===el.fontFamily?'selected':''}>${f.label}</option>`).join('');
   return `
@@ -805,6 +918,10 @@ function textFields(el){
     <button data-align="left" class="${el.textAlign=='left'?'active':''}">左</button>
     <button data-align="center" class="${el.textAlign=='center'?'active':''}">中央</button>
     <button data-align="right" class="${el.textAlign=='right'?'active':''}">右</button>
+  </div></div>
+  <div class="field"><label>文字方向</label><div class="seg">
+    <button data-wm="horizontal" class="${el.writingMode!=='vertical'?'active':''}">横書き</button>
+    <button data-wm="vertical" class="${el.writingMode==='vertical'?'active':''}">縦書き</button>
   </div></div>`;
 }
 
@@ -871,7 +988,7 @@ function renderInspector(){
     inspector.innerHTML = '<div class="empty-state">要素をクリックして選択してください。<br>ドラッグで移動、右下の■で拡大縮小できます。</div>';
     return;
   }
-  let html = fieldXYWH(el) + '<hr class="sep">';
+  let html = fieldXYWH(el) + alignFields() + '<hr class="sep">';
   if(el.type==='text') html += textFields(el);
   else if(el.type==='rect' || el.type==='ellipse' || el.type==='vector') html += shapeFields(el);
   else if(el.type==='image') html += imageFields(el);
@@ -941,6 +1058,10 @@ function bindInspectorEvents(el){
       el.textAlign=b.dataset.align; updateNode(el);
       inspector.querySelectorAll('[data-align]').forEach(x=>x.classList.toggle('active', x===b));
     }));
+    inspector.querySelectorAll('[data-wm]').forEach(b=>b.addEventListener('click', ()=>{
+      el.writingMode=b.dataset.wm; updateNode(el);
+      inspector.querySelectorAll('[data-wm]').forEach(x=>x.classList.toggle('active', x===b));
+    }));
   } else if(el.type==='rect' || el.type==='ellipse' || el.type==='vector'){
     const showFill = !(el.type==='vector' && el.closed===false);
     if(showFill) bindFillEvents(el);
@@ -966,6 +1087,10 @@ function bindInspectorEvents(el){
   bind('fAnimDur','input', e=>{ el.anim.duration=Number(e.target.value); const l=$('lblDur'); if(l) l.textContent='長さ '+el.anim.duration+'ms'; });
   bind('fAnimDelay','input', e=>{ el.anim.delay=Number(e.target.value); const l=$('lblDelay'); if(l) l.textContent='遅延 '+el.anim.delay+'ms'; });
 
+  inspector.querySelectorAll('[data-align-el]').forEach(b=>b.addEventListener('click', ()=>{
+    alignElement(el, b.dataset.alignEl);
+  }));
+
   inspector.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click', ()=>{
     const act = b.dataset.act;
     if(act==='front'){ el.z = nextZ(); updateNode(el); }
@@ -980,7 +1105,7 @@ pageCanvas.addEventListener('pointerdown', (e)=>{
   if(state.drawingMode){
     if(e.target===pageCanvas || e.target===drawOverlay){
       const rect = pageCanvas.getBoundingClientRect();
-      const x = e.clientX - rect.left, y = e.clientY - rect.top;
+      const x = (e.clientX - rect.left) / state.zoom, y = (e.clientY - rect.top) / state.zoom;
       if(state.tempPoints.length>=3){
         const first = state.tempPoints[0];
         if(Math.hypot(x-first.x, y-first.y) < 12){ finishPenPath(true); return; }
@@ -1018,8 +1143,9 @@ resizeH.addEventListener('pointerdown', (e)=>{
   const origH = state.canvasHeight;
   try{ resizeH.setPointerCapture(e.pointerId); }catch(err){}
   function onMove(ev){
-    state.canvasHeight = Math.max(400, origH + (ev.clientY - startY));
+    state.canvasHeight = Math.max(400, origH + (ev.clientY - startY) / state.zoom);
     pageCanvas.style.height = state.canvasHeight+'px';
+    pageScaler.style.height = (state.canvasHeight * state.zoom) + 'px';
   }
   function onUp(ev){
     try{ resizeH.releasePointerCapture(ev.pointerId); }catch(err){}
@@ -1082,6 +1208,19 @@ $('canvasBg').addEventListener('input', (e)=>{
   state.canvasBg = e.target.value;
   pageCanvas.style.background = state.canvasBg;
 });
+
+// ---------------- Zoom controls ----------------
+$('zoomIn').addEventListener('click', ()=>setZoom(state.zoom * 1.2, true));
+$('zoomOut').addEventListener('click', ()=>setZoom(state.zoom / 1.2, true));
+$('zoomFit').addEventListener('click', zoomToFit);
+$('zoomLabel').addEventListener('click', ()=>setZoom(1, true));
+canvasArea.addEventListener('wheel', (e)=>{
+  if(e.ctrlKey || e.metaKey){
+    e.preventDefault();
+    setZoom(state.zoom * (e.deltaY < 0 ? 1.1 : 0.9), true);
+  }
+}, { passive:false });
+window.addEventListener('resize', ()=>{ if(state.autoFit) zoomToFit(); });
 
 $('btnToggleRail').addEventListener('click', ()=>{ railEl.classList.toggle('open'); inspector.classList.remove('open'); });
 $('btnToggleInspector').addEventListener('click', ()=>{ inspector.classList.toggle('open'); railEl.classList.remove('open'); });
@@ -1266,6 +1405,7 @@ async function exportZip(){
       let rule = `.el-${el.id}{position:absolute;left:${el.x}px;top:${el.y}px;width:${el.w}px;height:${el.h}px;z-index:${el.z};box-sizing:border-box;`;
       if(el.type==='text'){
         rule += `font-size:${el.fontSize}px;color:${el.color};font-weight:${el.fontWeight};text-align:${el.textAlign};font-family:${el.fontFamily};line-height:1.4;`;
+        if(el.writingMode==='vertical') rule += `writing-mode:vertical-rl;text-orientation:mixed;`;
       } else if(el.type==='rect'){
         rule += `background:${fillToCss(el.fill)};border-radius:${el.radius}px;`;
         if(el.borderWidth>0) rule += `border:${el.borderWidth}px solid ${el.borderColor||'#000'};`;
@@ -1324,12 +1464,11 @@ function applyLoadedProject(data){
   state.els.forEach(el=>{ const n = parseInt(String(el.id).replace(/[^0-9]/g,''),10); if(!isNaN(n)) maxNum = Math.max(maxNum,n); });
   state.idCounter = maxNum+1;
   state.selectedId = null;
-  pageCanvas.style.width = state.canvasWidth+'px';
-  pageCanvas.style.height = state.canvasHeight+'px';
-  pageCanvas.style.background = state.canvasBg;
+  syncCanvasBox();
   const cbg = $('canvasBg'); if(cbg) cbg.value = state.canvasBg;
   renderAll();
   renderInspector();
+  zoomToFit();
 }
 
 $('btnImport').addEventListener('click', ()=>{ zipInput.click(); });
@@ -1581,14 +1720,13 @@ function seedDemoContent(){
 }
 
 (async function init(){
-  pageCanvas.style.width = state.canvasWidth+'px';
-  pageCanvas.style.height = state.canvasHeight+'px';
-  pageCanvas.style.background = state.canvasBg;
+  syncCanvasBox();
   renderAccount();
   refreshAuth();
   let restored = false;
   try{ restored = await loadTemp(); }catch(err){ console.log(err); }
   if(!restored){ seedDemoContent(); }
+  zoomToFit();
 })();
 </script>
 </body>
