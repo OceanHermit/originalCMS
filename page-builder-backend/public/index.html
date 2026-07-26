@@ -54,6 +54,9 @@ button,select,input{font-family:inherit;}
 .icon-btn:hover{border-color:var(--accent);color:var(--accent);}
 .icon-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
 .icon-btn.primary:hover{filter:brightness(1.1);color:#fff;}
+.icon-btn:disabled{opacity:.35;cursor:default;}
+.icon-btn:disabled:hover{border-color:var(--border);color:var(--text);}
+.icon-btn.toggled{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
 .tb-sep{width:1px;height:22px;background:var(--border);flex:0 0 auto;margin:0 2px;}
 .mobile-only{display:none;}
 #saveStatus{font-size:11px;color:var(--text-muted);opacity:0;transition:opacity .3s;white-space:nowrap;}
@@ -163,6 +166,62 @@ button,select,input{font-family:inherit;}
   z-index:400;pointer-events:none;
 }
 .page.multi-select .handle{display:none;}
+.guide-layer{position:absolute;inset:0;pointer-events:none;z-index:9998;}
+.guide{position:absolute;background:#ff3b8d;}
+.guide-v{top:0;width:1px;height:100%;}
+.guide-h{left:0;height:1px;width:100%;}
+.layer-item .ltog{
+  flex:0 0 auto;opacity:0;cursor:pointer;color:var(--text-muted);
+  display:flex;align-items:center;padding:2px;border-radius:4px;background:none;border:none;
+}
+.layer-item .ltog svg{width:13px;height:13px;display:block;}
+.layer-item:hover .ltog,.layer-item .ltog.on{opacity:.9;}
+.layer-item .ltog:hover{color:var(--accent);}
+.layer-item.is-hidden .lname,.layer-item.is-locked .lname{opacity:.45;}
+.layer-item .lname{flex:1 1 auto;min-width:0;}
+.layer-item .grip{margin-left:0;}
+#pageList{display:flex;flex-direction:column;gap:3px;margin-bottom:8px;}
+.page-item{
+  display:flex;align-items:center;gap:6px;padding:7px 8px;border-radius:7px;font-size:12.5px;
+  cursor:pointer;color:var(--text-muted);border:1px solid transparent;
+}
+.page-item:hover{background:var(--bg-panel-2);}
+.page-item.active{background:var(--accent-soft);color:var(--text);border-color:var(--accent);}
+.page-item.child{margin-left:14px;font-size:12px;}
+.page-item.child::before{content:'└';opacity:.4;margin-right:-2px;}
+.page-item .pgname{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.page-item .ltog{opacity:0;}
+.page-item:hover .ltog{opacity:.85;}
+.device-seg{display:flex;border:1px solid var(--border);border-radius:7px;overflow:hidden;}
+.device-seg button{
+  flex:1;background:var(--bg-panel-2);color:var(--text-muted);border:none;cursor:pointer;
+  padding:7px 0;display:flex;align-items:center;justify-content:center;gap:5px;font-size:11.5px;
+  border-right:1px solid var(--border);
+}
+.device-seg button:last-child{border-right:none;}
+.device-seg button svg{width:15px;height:15px;}
+.device-seg button.active{background:var(--accent);color:#fff;}
+.field textarea{
+  width:100%;background:var(--bg-panel-2);border:1px solid var(--border);color:var(--text);
+  padding:7px 9px;border-radius:6px;font-size:12.5px;resize:vertical;min-height:60px;font-family:inherit;
+}
+.color-tools{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;align-items:center;}
+.mini-btn{
+  width:22px;height:22px;padding:0;border-radius:5px;cursor:pointer;flex:0 0 auto;
+  background:var(--bg-panel-2);border:1px solid var(--border);color:var(--text-muted);
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.mini-btn svg{width:13px;height:13px;display:block;}
+.mini-btn:hover{border-color:var(--accent);color:var(--accent);}
+.swatch{
+  width:18px;height:18px;border-radius:4px;border:1px solid rgba(255,255,255,.18);
+  cursor:pointer;padding:0;flex:0 0 auto;
+}
+.swatch:hover{outline:2px solid var(--accent);outline-offset:1px;}
+.badge-group{
+  font-size:9px;padding:1px 4px;border-radius:4px;background:var(--accent-soft);
+  color:var(--accent);flex:0 0 auto;
+}
 .resize-h{
   position:absolute;left:0;bottom:-15px;width:100%;height:15px;cursor:ns-resize;
   display:flex;align-items:center;justify-content:center;z-index:9999;
@@ -185,6 +244,13 @@ button,select,input{font-family:inherit;}
 .handle.sw{left:-7px;bottom:-7px;cursor:nesw-resize;}
 .handle.w{left:-7px;top:50%;transform:translateY(-50%);cursor:ew-resize;}
 .el-text{outline:none;line-height:1.4;overflow:hidden;padding:2px;}
+.embed-ph{
+  width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  background:repeating-linear-gradient(45deg,#eef0f5,#eef0f5 10px,#e6e9f0 10px,#e6e9f0 20px);
+  border:1px dashed #9aa1b1;color:#5b6172;font-size:12px;text-align:center;padding:8px;
+}
+.embed-ph .embed-ic svg{width:26px;height:26px;}
+.embed-ph .embed-note{font-size:10.5px;opacity:.75;}
 .el-text.vertical{writing-mode:vertical-rl;text-orientation:mixed;}
 .el-image img{width:100%;height:100%;display:block;pointer-events:none;}
 .el-vector svg{display:block;pointer-events:none;}
@@ -253,6 +319,10 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0;}
       <button class="icon-btn" id="btnImport" data-icon="folderOpen" title="ZIPを読み込む" aria-label="ZIPを読み込む"></button>
       <button class="icon-btn" id="btnSaveTemp" data-icon="floppy" title="一時保存(このブラウザ)" aria-label="一時保存"></button>
       <span class="tb-sep"></span>
+      <button class="icon-btn" id="btnUndo" data-icon="undo" title="元に戻す (Ctrl+Z)" aria-label="元に戻す"></button>
+      <button class="icon-btn" id="btnRedo" data-icon="redo" title="やり直す (Ctrl+Shift+Z)" aria-label="やり直す"></button>
+      <button class="icon-btn" id="btnSnap" data-icon="magnet" title="スマートガイド(スナップ)の切り替え" aria-label="スナップ"></button>
+      <span class="tb-sep"></span>
       <button class="icon-btn" id="btnCloudOpen" data-icon="cloudDown" title="クラウドを開く" aria-label="クラウドを開く"></button>
       <button class="icon-btn" id="btnCloudSave" data-icon="cloudUp" title="クラウドに保存" aria-label="クラウドに保存"></button>
       <span id="saveStatus"></span>
@@ -266,12 +336,26 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0;}
   <div class="workspace">
     <aside class="rail" id="rail">
       <div class="rail-section">
+        <h4>表示デバイス</h4>
+        <div class="device-seg">
+          <button data-device="pc" class="active" data-icon="monitor">PC</button>
+          <button data-device="sp" data-icon="phone">スマホ</button>
+        </div>
+      </div>
+      <div class="rail-section">
+        <h4>ページ</h4>
+        <div id="pageList"></div>
+        <button class="btn full-btn" id="btnAddPage" data-icon="plus" style="margin-top:0;">ページを追加</button>
+        <button class="btn full-btn" id="btnPageSettings" data-icon="globe">ページ設定 / SEO</button>
+      </div>
+      <div class="rail-section">
         <h4>要素を追加</h4>
         <div class="add-grid">
           <button class="add-btn" data-add="text" data-icon="text" title="テキスト">テキスト</button>
           <button class="add-btn" data-add="rect" data-icon="rect" title="四角形">四角形</button>
           <button class="add-btn" data-add="ellipse" data-icon="ellipse" title="円">円</button>
           <button class="add-btn" data-add="image" data-icon="image" title="画像">画像</button>
+          <button class="add-btn" data-add="embed" data-icon="code" title="埋め込みコード(YouTube・地図など)">埋込</button>
         </div>
         <input type="file" id="imageInput" accept="image/*" hidden>
       </div>
@@ -325,6 +409,16 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0;}
 <div id="penHint">クリックで頂点を追加・Enter/ダブルクリックで確定・Escでキャンセル・Backspaceで1点戻る</div>
 <input type="file" id="zipInput" accept=".zip" hidden>
 
+<div class="modal-overlay" id="pageModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>ページ設定 / SEO</h3>
+      <button class="modal-close" id="pageModalClose">×</button>
+    </div>
+    <div class="modal-body" id="pageModalBody"></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="cloudModal">
   <div class="modal">
     <div class="modal-head">
@@ -349,6 +443,14 @@ const state = {
   tempPoints: [],
   zoom: 1,
   autoFit: true,
+  snap: true,
+  pages: [],
+  currentPageId: null,
+  device: 'pc',
+  desktopWidth: 1200,
+  mobileWidth: 480,
+  site: { nav: { enabled:true, bg:'#ffffff', color:'#1a1a1a', accent:'#6c5ce7', height:64 } },
+  swatches: ['#6c5ce7','#00b894','#f2994a','#eb5757','#1a1a1a','#ffffff'],
 };
 
 const FONTS = [
@@ -438,6 +540,22 @@ const ICONS = {
   pen:        svgS('<path d="m12 3 7.5 15L12 14.6 4.5 18 12 3Z"/><path d="M12 14.6V21"/>'),
   vector:     svgS('<path d="m12 4 7 14-7-3.2L5 18 12 4Z"/>'),
   grip:       svgF('<circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/>'),
+  eye:        svgS('<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="2.6"/>'),
+  eyeOff:     svgS('<path d="M4 4.5 19.5 20"/><path d="M9.5 6.2A9.6 9.6 0 0 1 12 5.9c6.4 0 10 6.1 10 6.1a17 17 0 0 1-3.3 3.9"/><path d="M6.4 8.1A16.7 16.7 0 0 0 2 12s3.6 6.1 10 6.1a10 10 0 0 0 3.5-.6"/><path d="M9.8 10a2.6 2.6 0 0 0 3.6 3.6"/>'),
+  lock:       svgS('<rect x="5" y="10.5" width="14" height="9.5" rx="1.6"/><path d="M8 10.5V7.8a4 4 0 0 1 8 0v2.7"/>'),
+  unlock:     svgS('<rect x="5" y="10.5" width="14" height="9.5" rx="1.6"/><path d="M8 10.5V7.8a4 4 0 0 1 7.7-1.4"/>'),
+  undo:       svgS('<path d="M4 8h9.5a5.5 5.5 0 1 1 0 11H7"/><path d="M8 4 4 8l4 4"/>'),
+  redo:       svgS('<path d="M20 8h-9.5a5.5 5.5 0 1 0 0 11H17"/><path d="m16 4 4 4-4 4"/>'),
+  magnet:     svgS('<path d="M6 4v7a6 6 0 0 0 12 0V4"/><path d="M6 9h4M14 9h4"/>'),
+  code:       svgS('<path d="m8.5 8-4.5 4 4.5 4"/><path d="m15.5 8 4.5 4-4.5 4"/><path d="m13.5 5-3 14"/>'),
+  plus:       svgS('<path d="M12 5v14M5 12h14"/>'),
+  pencil:     svgS('<path d="M4 20h4l10-10a2.5 2.5 0 0 0-3.5-3.5L4.5 16.5 4 20Z"/>'),
+  trash:      svgS('<path d="M4 7h16"/><path d="M9.5 7V5.5A1.5 1.5 0 0 1 11 4h2a1.5 1.5 0 0 1 1.5 1.5V7"/><path d="M6.5 7 7.4 19a1.6 1.6 0 0 0 1.6 1.5h6a1.6 1.6 0 0 0 1.6-1.5L17.5 7"/>'),
+  monitor:    svgS('<rect x="2.5" y="4" width="19" height="12.5" rx="1.6"/><path d="M8.5 20.5h7M12 16.5v4"/>'),
+  phone:      svgS('<rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18.7h2"/>'),
+  globe:      svgS('<circle cx="12" cy="12" r="9"/><path d="M3.2 9.5h17.6M3.2 14.5h17.6"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18Z"/>'),
+  eyedropper: svgS('<path d="m15.5 3.5 5 5"/><path d="m13.5 5.5 5 5"/><path d="M16 8 8.5 15.5 8 19l3.5-.5L19 11"/><path d="M5.5 18.5 4 20"/>'),
+  group:      svgS('<rect x="3.5" y="3.5" width="8" height="8" rx="1"/><rect x="12.5" y="12.5" width="8" height="8" rx="1"/><path d="M12.5 7.5h4a1 1 0 0 1 1 1v4"/>'),
   // panels
   alignLeft: alignIcon('left'), alignHCenter: alignIcon('hcenter'), alignRight: alignIcon('right'),
   alignTop: alignIcon('top'), alignVMiddle: alignIcon('vmiddle'), alignBottom: alignIcon('bottom'),
@@ -446,7 +564,7 @@ const ICONS = {
   orderBackward: orderIcon('backward'), orderBack: orderIcon('back'),
 };
 
-const LAYER_ICON = { text:'text', rect:'rect', ellipse:'ellipse', image:'image', vector:'vector' };
+const LAYER_ICON = { text:'text', rect:'rect', ellipse:'ellipse', image:'image', vector:'vector', embed:'code' };
 
 // Fill in every element that declared an icon in the static markup.
 function injectStaticIcons(root){
@@ -574,10 +692,13 @@ function addElement(type){
     el = Object.assign(base, {x:100+offset,y:100+offset,w:180,h:100,fill:{mode:'solid',color:'#6c5ce7',gradType:'linear',from:'#6c5ce7',to:'#00b894',angle:90},borderColor:'',borderWidth:0,radius:8});
   } else if(type==='ellipse'){
     el = Object.assign(base, {x:100+offset,y:100+offset,w:120,h:120,fill:{mode:'solid',color:'#f2994a',gradType:'linear',from:'#f2994a',to:'#eb5757',angle:90},borderColor:'',borderWidth:0});
+  } else if(type==='embed'){
+    el = Object.assign(base, {x:100+offset,y:100+offset,w:480,h:270,html:''});
   }
   state.els.push(el);
   renderAll();
   selectElement(id);
+  commit();
   if(type==='text'){
     requestAnimationFrame(()=>{
       const node = $(id);
@@ -605,6 +726,7 @@ function addImageElement(dataUrl, naturalW, naturalH){
   state.els.push(el);
   renderAll();
   selectElement(id);
+  commit();
 }
 
 function addVectorPreset(kind){
@@ -626,6 +748,7 @@ function addVectorPreset(kind){
   state.els.push(el);
   renderAll();
   selectElement(id);
+  commit();
 }
 
 // ---------------- Pen tool ----------------
@@ -687,6 +810,7 @@ function finishPenPath(closeShape){
     state.els.push(el);
     renderAll();
     selectElement(el.id);
+    commit();
   }
   cancelPenTool();
 }
@@ -698,11 +822,66 @@ function cancelPenTool(){
   penHint.style.display='none';
 }
 
+// ---------------- Smart guides / snapping ----------------
+const SNAP_TOL = 6;   // canvas px
+let guideLayer = null;
+
+function ensureGuideLayer(){
+  if(!guideLayer || !guideLayer.isConnected){
+    guideLayer = document.createElement('div');
+    guideLayer.className = 'guide-layer';
+    pageCanvas.insertBefore(guideLayer, resizeH);
+  }
+  return guideLayer;
+}
+function hideGuides(){ if(guideLayer) guideLayer.innerHTML = ''; }
+function showGuides(lines){
+  const g = ensureGuideLayer();
+  g.innerHTML = lines.map(l=> l.vertical
+    ? `<div class="guide guide-v" style="left:${l.pos}px;"></div>`
+    : `<div class="guide guide-h" style="top:${l.pos}px;"></div>`
+  ).join('');
+}
+// Edges/centers worth snapping to: the canvas itself plus every other element.
+function snapTargets(excludeIds){
+  const vs = [0, state.canvasWidth/2, state.canvasWidth];
+  const hs = [0, state.canvasHeight/2, state.canvasHeight];
+  state.els.forEach(el=>{
+    if(excludeIds.indexOf(el.id) > -1 || !isEditable(el)) return;
+    vs.push(el.x, el.x + el.w/2, el.x + el.w);
+    hs.push(el.y, el.y + el.h/2, el.y + el.h);
+  });
+  return { vs, hs };
+}
+// Nudge a proposed bounding box onto the nearest target within tolerance.
+function computeSnap(minX, minY, maxX, maxY, targets){
+  const tol = SNAP_TOL / Math.max(state.zoom, 0.2);
+  const cx = (minX + maxX)/2, cy = (minY + maxY)/2;
+  let bx = null, by = null;
+  [minX, cx, maxX].forEach(val=>{
+    targets.vs.forEach(t=>{
+      const d = t - val;
+      if(Math.abs(d) <= tol && (bx === null || Math.abs(d) < Math.abs(bx.d))) bx = { d, pos:t };
+    });
+  });
+  [minY, cy, maxY].forEach(val=>{
+    targets.hs.forEach(t=>{
+      const d = t - val;
+      if(Math.abs(d) <= tol && (by === null || Math.abs(d) < Math.abs(by.d))) by = { d, pos:t };
+    });
+  });
+  const lines = [];
+  if(bx) lines.push({ vertical:true, pos:bx.pos });
+  if(by) lines.push({ vertical:false, pos:by.pos });
+  return { dx: bx ? bx.d : 0, dy: by ? by.d : 0, lines };
+}
+
 // ---------------- Drag & resize ----------------
 function attachDrag(node, el){
   node.addEventListener('pointerdown', (e)=>{
     if(node.isContentEditable) return;
     if(e.target.classList.contains('handle')) return;
+    if(!isEditable(el)) return;          // locked/hidden elements ignore pointer input
     e.stopPropagation();
     // Shift/Ctrl click toggles this element in the selection (no drag).
     if(e.shiftKey || e.ctrlKey || e.metaKey){
@@ -718,8 +897,19 @@ function attachDrag(node, el){
     }));
     const startX = e.clientX, startY = e.clientY;
     try{ node.setPointerCapture(e.pointerId); }catch(err){}
+    const movedIds = movers.map(m=>m.el.id);
+    const bb0 = selectionBBox(movers.map(m=>m.el));
     function onMove(ev){
-      const dx = (ev.clientX - startX) / state.zoom, dy = (ev.clientY - startY) / state.zoom;
+      let dx = (ev.clientX - startX) / state.zoom, dy = (ev.clientY - startY) / state.zoom;
+      // Alt bypasses snapping, matching the usual vector-editor convention.
+      if(state.snap && !ev.altKey){
+        const t = snapTargets(movedIds);
+        const s = computeSnap(bb0.minX+dx, bb0.minY+dy, bb0.maxX+dx, bb0.maxY+dy, t);
+        dx += s.dx; dy += s.dy;
+        showGuides(s.lines);
+      } else {
+        hideGuides();
+      }
       movers.forEach(m=>{
         m.el.x = m.ox + dx; m.el.y = m.oy + dy;
         if(m.opts){ m.el.points = m.opts.map(p=>({x:p.x+dx, y:p.y+dy})); }
@@ -732,6 +922,8 @@ function attachDrag(node, el){
       try{ node.releasePointerCapture(ev.pointerId); }catch(err){}
       node.removeEventListener('pointermove', onMove);
       node.removeEventListener('pointerup', onUp);
+      hideGuides();
+      commit();
     }
     node.addEventListener('pointermove', onMove);
     node.addEventListener('pointerup', onUp);
@@ -778,6 +970,7 @@ function startResize(e, el, node, dir){
     try{ handleEl.releasePointerCapture(ev.pointerId); }catch(err){}
     handleEl.removeEventListener('pointermove', onMove);
     handleEl.removeEventListener('pointerup', onUp);
+    commit();
   }
   handleEl.addEventListener('pointermove', onMove);
   handleEl.addEventListener('pointerup', onUp);
@@ -823,6 +1016,15 @@ function buildVectorSvg(el){
 }
 
 // ---------------- Build / update nodes ----------------
+function buildEmbedPlaceholder(el){
+  const box = document.createElement('div');
+  box.className = 'embed-ph';
+  const has = !!(el.html && el.html.trim());
+  box.innerHTML = `<div class="embed-ic">${ICONS.code}</div><div>${has ? '埋め込みコード' : 'コード未設定'}</div>` +
+    (has ? '<div class="embed-note">公開時に表示されます</div>' : '<div class="embed-note">右パネルでHTMLを貼り付け</div>');
+  return box;
+}
+
 function buildNode(el){
   const node = document.createElement('div');
   node.className = 'el el-'+el.type;
@@ -833,6 +1035,8 @@ function buildNode(el){
   node.style.height = el.h+'px';
   node.style.zIndex = el.z;
   if(isSelected(el.id)) node.classList.add('selected');
+  if(el.hidden) node.style.display = 'none';
+  if(el.locked) node.style.cursor = 'default';
 
   if(el.type==='text'){
     node.contentEditable = 'false';
@@ -876,16 +1080,22 @@ function buildNode(el){
     node.appendChild(img);
   } else if(el.type==='vector'){
     node.appendChild(buildVectorSvg(el));
+  } else if(el.type==='embed'){
+    // The editor shows a placeholder; the raw HTML is only emitted on export,
+    // so nothing from the snippet runs while you are designing.
+    node.appendChild(buildEmbedPlaceholder(el));
   }
 
   attachDrag(node, el);
-  const dirs = (el.type==='vector' || el.type==='line') ? ['nw','ne','se','sw'] : ['nw','n','ne','e','se','s','sw','w'];
-  dirs.forEach(dir=>{
-    const handle = document.createElement('div');
-    handle.className = 'handle ' + dir;
-    handle.addEventListener('pointerdown', (e)=>startResize(e, el, node, dir));
-    node.appendChild(handle);
-  });
+  if(isEditable(el)){
+    const dirs = (el.type==='vector' || el.type==='line') ? ['nw','ne','se','sw'] : ['nw','n','ne','e','se','s','sw','w'];
+    dirs.forEach(dir=>{
+      const handle = document.createElement('div');
+      handle.className = 'handle ' + dir;
+      handle.addEventListener('pointerdown', (e)=>startResize(e, el, node, dir));
+      node.appendChild(handle);
+    });
+  }
 
   return node;
 }
@@ -919,6 +1129,10 @@ function updateNode(el){
     const oldSvg = node.querySelector('svg');
     if(oldSvg) oldSvg.remove();
     node.appendChild(buildVectorSvg(el));
+  } else if(el.type==='embed'){
+    const old = node.querySelector('.embed-ph');
+    if(old) old.remove();
+    node.appendChild(buildEmbedPlaceholder(el));
   }
   renderLayers();
 }
@@ -948,6 +1162,7 @@ function layerLabel(el){
   if(el.type==='ellipse') return '円';
   if(el.type==='image') return '画像';
   if(el.type==='vector') return 'ベクター図形';
+  if(el.type==='embed') return '埋め込みコード';
   return '四角形';
 }
 
@@ -958,16 +1173,36 @@ function renderLayers(){
     layerList.innerHTML = '<div style="color:var(--text-muted);font-size:12px;">要素がありません</div>';
     return;
   }
-  layerList.innerHTML = sorted.map(el=>`
-    <div class="layer-item ${isSelected(el.id)?'active':''}" data-id="${el.id}" draggable="true">
+  layerList.innerHTML = sorted.map(el=>{
+    const cls = [
+      'layer-item',
+      isSelected(el.id) ? 'active' : '',
+      el.hidden ? 'is-hidden' : '',
+      el.locked ? 'is-locked' : '',
+    ].filter(Boolean).join(' ');
+    return `
+    <div class="${cls}" data-id="${el.id}" draggable="${el.locked ? 'false' : 'true'}">
       <span class="lic">${ICONS[LAYER_ICON[el.type]] || ''}</span>
       <span class="lname">${escapeHtml(layerLabel(el))}</span>
+      ${el.groupId ? '<span class="badge-group" title="グループ">組</span>' : ''}
+      <button class="ltog ${el.hidden?'on':''}" data-vis="${el.id}" title="${el.hidden?'表示する':'隠す'}">${el.hidden?ICONS.eyeOff:ICONS.eye}</button>
+      <button class="ltog ${el.locked?'on':''}" data-lock="${el.id}" title="${el.locked?'ロック解除':'ロック'}">${el.locked?ICONS.lock:ICONS.unlock}</button>
       <span class="grip" title="ドラッグで重ね順を変更">${ICONS.grip}</span>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   layerList.querySelectorAll('.layer-item').forEach(n=>{
-    n.addEventListener('click', (ev)=>selectElement(n.dataset.id, ev.shiftKey||ev.ctrlKey||ev.metaKey));
+    n.addEventListener('click', (ev)=>{
+      if(ev.target.closest('[data-vis],[data-lock]')) return;
+      selectElement(n.dataset.id, ev.shiftKey||ev.ctrlKey||ev.metaKey);
+    });
     attachLayerDnd(n);
   });
+  layerList.querySelectorAll('[data-vis]').forEach(b=>b.addEventListener('click', (ev)=>{
+    ev.stopPropagation(); toggleHidden(b.dataset.vis);
+  }));
+  layerList.querySelectorAll('[data-lock]').forEach(b=>b.addEventListener('click', (ev)=>{
+    ev.stopPropagation(); toggleLock(b.dataset.lock);
+  }));
 }
 
 // ---------------- Layer drag & drop reordering ----------------
@@ -1027,6 +1262,7 @@ function applyOrder(order){
     if(n) n.style.zIndex = el.z;
   });
   renderLayers();
+  commit();
 }
 function changeOrderSelected(how){
   const sel = selectedEls();
@@ -1057,20 +1293,30 @@ function syncSelectionDom(){
   pageCanvas.classList.toggle('multi-select', state.selectedIds.length > 1);
 }
 function setSelection(ids){
-  state.selectedIds = ids.slice();
-  state.selectedId = ids.length ? ids[ids.length-1] : null;
+  const usable = ids.filter(id=>{
+    const el = state.els.find(e=>e.id===id);
+    return el && isEditable(el);
+  });
+  state.selectedIds = expandGroups(usable);
+  state.selectedId = state.selectedIds.length ? state.selectedIds[state.selectedIds.length-1] : null;
   syncSelectionDom();
   renderInspector();
   if(state.selectedIds.length && window.innerWidth <= 880) inspector.classList.add('open');
 }
 
 function selectElement(id, additive){
+  const el = state.els.find(e=>e.id===id);
+  if(!el || !isEditable(el)) return;
+  const members = el.groupId ? state.els.filter(e=>e.groupId===el.groupId).map(e=>e.id) : [id];
   if(additive){
-    const i = state.selectedIds.indexOf(id);
-    if(i > -1) state.selectedIds.splice(i, 1); else state.selectedIds.push(id);
-    setSelection(state.selectedIds);
+    // Shift-clicking any member of a fully selected group drops the group.
+    const allIn = members.every(m=>isSelected(m));
+    let next = state.selectedIds.slice();
+    if(allIn) next = next.filter(sid=>members.indexOf(sid) === -1);
+    else members.forEach(m=>{ if(next.indexOf(m) === -1) next.push(m); });
+    setSelection(next);
   } else {
-    setSelection([id]);
+    setSelection(members);
   }
 }
 
@@ -1078,17 +1324,20 @@ function deselectAll(){ setSelection([]); }
 
 function deleteElement(id){
   state.els = state.els.filter(e=>e.id!==id);
+  syncPageFromState();
   const node = $(id);
   if(node) node.remove();
   state.selectedIds = state.selectedIds.filter(sid=>sid!==id);
   setSelection(state.selectedIds);
   renderLayers();
+  commit();
 }
 
 function deleteSelected(){
   if(!state.selectedIds.length) return;
   const ids = state.selectedIds.slice();
   state.els = state.els.filter(e=>ids.indexOf(e.id) === -1);
+  syncPageFromState();
   ids.forEach(id=>{ const n=$(id); if(n) n.remove(); });
   setSelection([]);
   renderLayers();
@@ -1109,6 +1358,389 @@ function duplicateSelected(){
   });
   renderAll();
   setSelection(newIds);
+  commit();
+}
+
+// ---------------- Pages ----------------
+// state.els / canvasHeight / canvasBg always mirror the *current* page; the
+// page object holds the authoritative copy, refreshed via syncPageFromState().
+// Slugs become file names and URLs, so keep them ASCII. A Japanese page name
+// falls back to page-N; the user can always type a slug by hand.
+function slugify(name, fallback){
+  const s = String(name||'').trim().toLowerCase()
+    .replace(/[^a-z0-9\- ]/g,'')
+    .replace(/\s+/g,'-')
+    .replace(/-+/g,'-')
+    .replace(/^-|-$/g,'');
+  return s || fallback || ('page-' + Date.now());
+}
+function newPage(name, opts){
+  opts = opts || {};
+  return {
+    id: 'p' + (state.idCounter++),
+    name: name || '新しいページ',
+    slug: opts.slug || slugify(name, 'page-' + state.idCounter),
+    parentId: opts.parentId || null,
+    inNav: opts.inNav !== false,
+    els: [],
+    canvasHeight: opts.canvasHeight || 1600,
+    canvasBg: opts.canvasBg || '#ffffff',
+    seo: { title:'', description:'', ogImage:'' },
+  };
+}
+function currentPage(){ return state.pages.find(p=>p.id===state.currentPageId) || state.pages[0]; }
+function isHomePage(p){ return state.pages.indexOf(p) === 0; }
+function pageFileName(p){ return isHomePage(p) ? 'index.html' : (p.slug || p.id) + '.html'; }
+function syncPageFromState(){
+  const p = currentPage();
+  if(!p) return;
+  p.els = state.els;
+  p.canvasHeight = state.canvasHeight;
+  p.canvasBg = state.canvasBg;
+}
+function loadPageIntoState(p){
+  state.els = p.els;
+  state.canvasHeight = p.canvasHeight;
+  state.canvasBg = p.canvasBg;
+}
+function switchPage(id){
+  if(id === state.currentPageId) return;
+  const target = state.pages.find(p=>p.id===id);
+  if(!target) return;
+  if(state.drawingMode) cancelPenTool();
+  syncPageFromState();
+  state.currentPageId = id;
+  loadPageIntoState(target);
+  setSelection([]);
+  syncCanvasBox();
+  const cbg = $('canvasBg'); if(cbg) cbg.value = state.canvasBg;
+  renderAll();
+  renderPages();
+  zoomToFit();
+  historyReset();
+}
+function addPage(parentId){
+  syncPageFromState();
+  const name = prompt(parentId ? '子ページの名前' : 'ページの名前', parentId ? '子ページ' : '新しいページ');
+  if(name === null) return;
+  const p = newPage(name || '新しいページ', { parentId: parentId || null });
+  // Keep children directly after their parent so the list reads as a tree.
+  if(parentId){
+    let idx = state.pages.findIndex(x=>x.id===parentId);
+    let j = idx + 1;
+    while(j < state.pages.length && state.pages[j].parentId === parentId) j++;
+    state.pages.splice(j, 0, p);
+  } else {
+    state.pages.push(p);
+  }
+  state.currentPageId = p.id;
+  loadPageIntoState(p);
+  setSelection([]);
+  syncCanvasBox();
+  renderAll();
+  renderPages();
+  zoomToFit();
+  historyReset();
+}
+function renamePage(id){
+  const p = state.pages.find(x=>x.id===id);
+  if(!p) return;
+  const name = prompt('ページ名', p.name);
+  if(name === null) return;
+  p.name = name || p.name;
+  p.slug = slugify(p.name, p.slug);
+  renderPages();
+}
+function deletePage(id){
+  if(state.pages.length <= 1){ alert('最後の1ページは削除できません。'); return; }
+  const p = state.pages.find(x=>x.id===id);
+  if(!p) return;
+  const kids = state.pages.filter(x=>x.parentId===id);
+  const msg = kids.length
+    ? `「${p.name}」と子ページ${kids.length}件を削除します。よろしいですか?`
+    : `「${p.name}」を削除します。よろしいですか?`;
+  if(!confirm(msg)) return;
+  const removeIds = [id].concat(kids.map(k=>k.id));
+  state.pages = state.pages.filter(x=>removeIds.indexOf(x.id) === -1);
+  if(removeIds.indexOf(state.currentPageId) > -1){
+    state.currentPageId = state.pages[0].id;
+    loadPageIntoState(state.pages[0]);
+    setSelection([]);
+    syncCanvasBox();
+    renderAll();
+    zoomToFit();
+    historyReset();
+  }
+  renderPages();
+}
+function renderPages(){
+  const list = $('pageList');
+  if(!list) return;
+  list.innerHTML = state.pages.map(p=>`
+    <div class="page-item ${p.id===state.currentPageId?'active':''} ${p.parentId?'child':''}" data-page="${p.id}">
+      <span class="pgname" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</span>
+      ${isHomePage(p)?'<span class="badge-group" title="トップページ">HOME</span>':''}
+      <button class="ltog" data-addchild="${p.id}" title="子ページを追加">${ICONS.plus}</button>
+      <button class="ltog" data-renpage="${p.id}" title="名前を変更">${ICONS.pencil}</button>
+      <button class="ltog" data-delpage="${p.id}" title="削除">${ICONS.trash}</button>
+    </div>`).join('');
+  list.querySelectorAll('.page-item').forEach(n=>n.addEventListener('click', (e)=>{
+    if(e.target.closest('button')) return;
+    switchPage(n.dataset.page);
+  }));
+  list.querySelectorAll('[data-addchild]').forEach(b=>b.addEventListener('click', (e)=>{ e.stopPropagation(); addPage(b.dataset.addchild); }));
+  list.querySelectorAll('[data-renpage]').forEach(b=>b.addEventListener('click', (e)=>{ e.stopPropagation(); renamePage(b.dataset.renpage); }));
+  list.querySelectorAll('[data-delpage]').forEach(b=>b.addEventListener('click', (e)=>{ e.stopPropagation(); deletePage(b.dataset.delpage); }));
+}
+
+// ---------------- Responsive (device slots) ----------------
+// Every element keeps its live geometry on itself plus one saved slot per
+// device. Switching devices stashes the live values and loads the other slot,
+// so the rest of the editor keeps reading el.x / el.w untouched.
+const DEVICE_PROPS = ['x','y','w','h','fontSize','hidden'];
+function pickDeviceProps(el){
+  const o = {};
+  DEVICE_PROPS.forEach(k=>{ if(el[k] !== undefined) o[k] = el[k]; });
+  if(el.type==='vector' && el.points) o.points = el.points.map(p=>({x:p.x,y:p.y}));
+  return o;
+}
+function stashDevice(el, dev){ el[dev] = pickDeviceProps(el); }
+function loadDevice(el, dev){
+  const src = el[dev];
+  if(!src) return;
+  DEVICE_PROPS.forEach(k=>{ if(src[k] !== undefined) el[k] = src[k]; });
+  if(src.points) el.points = src.points.map(p=>({x:p.x,y:p.y}));
+}
+function syncDeviceFromState(){
+  state.pages.forEach(p=>{
+    const els = (p.id === state.currentPageId) ? state.els : p.els;
+    els.forEach(el=>stashDevice(el, state.device));
+  });
+}
+function setDevice(dev){
+  if(dev === state.device) return;
+  syncPageFromState();
+  // Stash current geometry, then load (or seed) the target device slot.
+  state.pages.forEach(p=>{
+    p.els.forEach(el=>{
+      stashDevice(el, state.device);
+      if(!el[dev]) el[dev] = pickDeviceProps(el);   // first visit inherits
+      loadDevice(el, dev);
+    });
+  });
+  state.device = dev;
+  state.canvasWidth = dev === 'sp' ? state.mobileWidth : state.desktopWidth;
+  setSelection([]);
+  syncCanvasBox();
+  renderAll();
+  zoomToFit();
+  document.querySelectorAll('[data-device]').forEach(b=>b.classList.toggle('active', b.dataset.device === dev));
+  historyReset();
+  flashSaveStatus(dev === 'sp' ? 'スマホ表示を編集中' : 'PC表示を編集中');
+}
+
+// ---------------- Color swatches / eyedropper ----------------
+function addSwatch(hex){
+  if(!hex) return;
+  hex = String(hex).toLowerCase();
+  state.swatches = [hex].concat(state.swatches.filter(c=>c !== hex)).slice(0, 12);
+}
+// Every colour input in the inspector gets a swatch strip and, where the
+// browser supports it, an eyedropper button.
+function enhanceColorInputs(){
+  inspector.querySelectorAll('input[type=color]').forEach(inp=>{
+    if(inp.dataset.enhanced) return;
+    inp.dataset.enhanced = '1';
+    const setColor = (hex)=>{
+      inp.value = hex;
+      inp.dispatchEvent(new Event('input', { bubbles:true }));
+      inp.dispatchEvent(new Event('change', { bubbles:true }));
+    };
+    const tools = document.createElement('div');
+    tools.className = 'color-tools';
+    if(window.EyeDropper){
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'mini-btn'; b.title = 'スポイトで画面から色を取得';
+      b.innerHTML = ICONS.eyedropper;
+      b.addEventListener('click', async ()=>{
+        try{
+          const res = await new window.EyeDropper().open();
+          addSwatch(res.sRGBHex);
+          setColor(res.sRGBHex);
+        }catch(err){ /* cancelled */ }
+      });
+      tools.appendChild(b);
+    }
+    state.swatches.forEach(c=>{
+      const s = document.createElement('button');
+      s.type = 'button'; s.className = 'swatch'; s.title = c;
+      s.style.background = c;
+      s.addEventListener('click', ()=>setColor(c));
+      tools.appendChild(s);
+    });
+    inp.insertAdjacentElement('afterend', tools);
+    inp.addEventListener('change', ()=>addSwatch(inp.value));
+  });
+}
+
+// ---------------- Undo / redo ----------------
+// Snapshots of the editable document. commit() is called at the end of an
+// interaction (pointerup, change), never on every pointermove.
+const history = { stack: [], index: -1, limit: 80, muted: false };
+
+function historySnapshot(){
+  return JSON.stringify({
+    els: state.els,
+    canvasWidth: state.canvasWidth,
+    canvasHeight: state.canvasHeight,
+    canvasBg: state.canvasBg,
+  });
+}
+function historyReset(){
+  history.stack = [historySnapshot()];
+  history.index = 0;
+  updateHistoryButtons();
+}
+function commit(){
+  if(history.muted) return;
+  const snap = historySnapshot();
+  if(history.stack[history.index] === snap) return;
+  history.stack = history.stack.slice(0, history.index + 1);
+  history.stack.push(snap);
+  if(history.stack.length > history.limit) history.stack.shift();
+  history.index = history.stack.length - 1;
+  updateHistoryButtons();
+}
+function applySnapshot(snap){
+  const data = JSON.parse(snap);
+  history.muted = true;
+  state.els = data.els;
+  syncPageFromState();
+  state.canvasWidth = data.canvasWidth;
+  state.canvasHeight = data.canvasHeight;
+  state.canvasBg = data.canvasBg;
+  const keep = state.selectedIds.filter(id=>state.els.some(e=>e.id===id));
+  syncCanvasBox();
+  const cbg = $('canvasBg'); if(cbg) cbg.value = state.canvasBg;
+  renderAll();
+  setSelection(keep);
+  history.muted = false;
+  updateHistoryButtons();
+}
+function undo(){
+  if(history.index <= 0) return;
+  history.index--;
+  applySnapshot(history.stack[history.index]);
+  flashSaveStatus('元に戻しました');
+}
+function redo(){
+  if(history.index >= history.stack.length - 1) return;
+  history.index++;
+  applySnapshot(history.stack[history.index]);
+  flashSaveStatus('やり直しました');
+}
+function updateHistoryButtons(){
+  const u = $('btnUndo'), r = $('btnRedo');
+  if(u) u.disabled = history.index <= 0;
+  if(r) r.disabled = history.index >= history.stack.length - 1;
+}
+
+// ---------------- Clipboard ----------------
+let clipboard = [];
+function copySelection(){
+  const els = selectedEls();
+  if(!els.length) return;
+  clipboard = els.map(el=>JSON.parse(JSON.stringify(el)));
+  flashSaveStatus(clipboard.length + '個をコピーしました');
+}
+function cutSelection(){
+  if(!state.selectedIds.length) return;
+  copySelection();
+  deleteSelected();
+}
+function pasteClipboard(){
+  if(!clipboard.length) return;
+  const gidMap = {};
+  const newIds = [];
+  clipboard.forEach(src=>{
+    const copy = JSON.parse(JSON.stringify(src));
+    copy.id = uid();
+    copy.x += 24; copy.y += 24;
+    if(copy.type==='vector'){ copy.points = copy.points.map(p=>({x:p.x+24, y:p.y+24})); }
+    if(copy.groupId){
+      if(!gidMap[copy.groupId]) gidMap[copy.groupId] = 'g' + (state.idCounter++);
+      copy.groupId = gidMap[copy.groupId];
+    }
+    copy.z = nextZ();
+    state.els.push(copy);
+    newIds.push(copy.id);
+  });
+  // Paste again should offset further rather than stack on the same spot.
+  clipboard = clipboard.map(c=>{
+    const n = JSON.parse(JSON.stringify(c));
+    n.x += 24; n.y += 24;
+    if(n.type==='vector'){ n.points = n.points.map(p=>({x:p.x+24, y:p.y+24})); }
+    return n;
+  });
+  renderAll();
+  setSelection(newIds);
+  commit();
+}
+
+// ---------------- Groups ----------------
+function groupSelection(){
+  const els = selectedEls();
+  if(els.length < 2) return;
+  const gid = 'g' + (state.idCounter++);
+  els.forEach(el=>{ el.groupId = gid; });
+  setSelection(state.selectedIds);
+  renderLayers();
+  commit();
+  flashSaveStatus('グループ化しました');
+}
+function ungroupSelection(){
+  const els = selectedEls();
+  if(!els.length) return;
+  let changed = false;
+  els.forEach(el=>{ if(el.groupId){ delete el.groupId; changed = true; } });
+  if(!changed) return;
+  setSelection(state.selectedIds);
+  renderLayers();
+  commit();
+  flashSaveStatus('グループを解除しました');
+}
+// Selecting one member of a group selects the whole group.
+function expandGroups(ids){
+  const out = [];
+  ids.forEach(id=>{
+    const el = state.els.find(e=>e.id===id);
+    if(!el) return;
+    if(el.groupId){
+      state.els.forEach(e=>{ if(e.groupId===el.groupId && out.indexOf(e.id)===-1) out.push(e.id); });
+    } else if(out.indexOf(id)===-1){
+      out.push(id);
+    }
+  });
+  return out;
+}
+
+// ---------------- Lock / visibility ----------------
+function isEditable(el){ return el && !el.locked && !el.hidden; }
+function toggleLock(id){
+  const el = state.els.find(e=>e.id===id);
+  if(!el) return;
+  el.locked = !el.locked;
+  if(el.locked) setSelection(state.selectedIds.filter(sid=>sid!==id));
+  renderAll();
+  commit();
+}
+function toggleHidden(id){
+  const el = state.els.find(e=>e.id===id);
+  if(!el) return;
+  el.hidden = !el.hidden;
+  if(el.hidden) setSelection(state.selectedIds.filter(sid=>sid!==id));
+  renderAll();
+  commit();
 }
 
 // ---------------- Multi-element align / distribute ----------------
@@ -1138,6 +1770,7 @@ function alignSelection(how){
     else if(how==='vmiddle') moveElTo(el, el.x, Math.round(b.cy - el.h/2));
   });
   updateXYWHFields();
+  commit();
 }
 function distributeSelection(axis){
   const els = selectedEls();
@@ -1158,6 +1791,7 @@ function distributeSelection(axis){
     els.forEach(el=>{ moveElTo(el, el.x, Math.round(cur)); cur += el.h + gap; });
   }
   updateXYWHFields();
+  commit();
 }
 
 function duplicateElement(id){
@@ -1171,6 +1805,7 @@ function duplicateElement(id){
   state.els.push(copy);
   renderAll();
   selectElement(copy.id);
+  commit();
 }
 
 // ---------------- Inspector ----------------
@@ -1229,6 +1864,7 @@ function alignElement(el, how){
   el.x = nx; el.y = ny;
   updateNode(el);
   updateXYWHFields();
+  commit();
 }
 
 function textFields(el){
@@ -1285,6 +1921,16 @@ function shapeFields(el){
   <div class="field"><label id="lblBW">線の太さ ${el.borderWidth}px</label><input type="range" id="fBW" min="0" max="20" value="${el.borderWidth}"></div>
   <div class="field"><label>線の色</label><input type="color" id="fBColor" value="${el.borderColor||'#000000'}"></div>
   ${radiusField}`;
+}
+
+function embedFields(el){
+  return `
+  <div class="field"><label>埋め込みHTML(YouTube・Googleマップ等)</label>
+    <textarea id="fEmbed" placeholder="&lt;iframe src=&quot;...&quot;&gt;&lt;/iframe&gt;">${escapeHtml(el.html||'')}</textarea>
+    <div style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.6;">
+      編集中は実行されず、書き出し・公開したページでのみ動作します。
+    </div>
+  </div>`;
 }
 
 function imageFields(el){
@@ -1349,6 +1995,7 @@ function renderInspector(){
   if(el.type==='text') html += textFields(el);
   else if(el.type==='rect' || el.type==='ellipse' || el.type==='vector') html += shapeFields(el);
   else if(el.type==='image') html += imageFields(el);
+  else if(el.type==='embed') html += embedFields(el);
   html += animFields(el);
   html += '<hr class="sep">' + orderFields();
   html += `<div class="row-actions">
@@ -1357,6 +2004,7 @@ function renderInspector(){
   </div>`;
   inspector.innerHTML = html;
   bindInspectorEvents(el);
+  enhanceColorInputs();
 }
 
 function bindFillEvents(el){
@@ -1424,6 +2072,8 @@ function bindInspectorEvents(el){
     if(el.type==='rect'){
       bind('fRadius','input', e=>{ el.radius=Number(e.target.value); updateNode(el); const l=$('lblRadius'); if(l) l.textContent='角丸 '+el.radius+'px'; });
     }
+  } else if(el.type==='embed'){
+    bind('fEmbed','input', e=>{ el.html = e.target.value; updateNode(el); });
   } else if(el.type==='image'){
     bind('fReplaceImg','click', ()=>{ pendingReplaceId = el.id; imageInput.click(); });
     inspector.querySelectorAll('[data-fit]').forEach(b=>b.addEventListener('click', ()=>{
@@ -1524,18 +2174,37 @@ document.addEventListener('keydown', (e)=>{
   if(e.target.isContentEditable) return;
   const tag = (e.target.tagName||'').toUpperCase();
   if(['INPUT','TEXTAREA','SELECT'].includes(tag)) return;
+  const mod = e.ctrlKey || e.metaKey;
+  const key = (e.key || '').toLowerCase();
+
+  if(mod && key==='z'){
+    e.preventDefault();
+    if(e.shiftKey) redo(); else undo();
+    return;
+  }
+  if(mod && key==='y'){ e.preventDefault(); redo(); return; }
+  if(mod && key==='c'){ e.preventDefault(); copySelection(); return; }
+  if(mod && key==='x'){ e.preventDefault(); cutSelection(); return; }
+  if(mod && key==='v'){ e.preventDefault(); pasteClipboard(); return; }
+  if(mod && key==='d'){ e.preventDefault(); duplicateSelected(); commit(); return; }
+  if(mod && key==='g'){
+    e.preventDefault();
+    if(e.shiftKey) ungroupSelection(); else groupSelection();
+    return;
+  }
+  if(mod && key==='a'){
+    e.preventDefault();
+    setSelection(state.els.filter(isEditable).map(el=>el.id));
+    return;
+  }
   if((e.key==='Delete' || e.key==='Backspace') && state.selectedIds.length){
     e.preventDefault();
     deleteSelected();
+    commit();
     return;
   }
   if(e.key==='Escape' && state.selectedIds.length){
     deselectAll();
-    return;
-  }
-  if((e.ctrlKey || e.metaKey) && (e.key==='a' || e.key==='A')){
-    e.preventDefault();
-    setSelection(state.els.map(el=>el.id));
     return;
   }
   if(state.selectedIds.length && ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){
@@ -1548,6 +2217,7 @@ document.addEventListener('keydown', (e)=>{
     else if(e.key==='ArrowDown') dy = step;
     selectedEls().forEach(el=>{ moveElTo(el, el.x+dx, el.y+dy); });
     updateXYWHFields();
+    commit();
     return;
   }
 });
@@ -1566,6 +2236,7 @@ resizeH.addEventListener('pointerdown', (e)=>{
     try{ resizeH.releasePointerCapture(ev.pointerId); }catch(err){}
     resizeH.removeEventListener('pointermove', onMove);
     resizeH.removeEventListener('pointerup', onUp);
+    commit();
   }
   resizeH.addEventListener('pointermove', onMove);
   resizeH.addEventListener('pointerup', onUp);
@@ -1592,36 +2263,146 @@ $('btnPenTool').addEventListener('click', ()=>{
   else startPenTool();
 });
 
-imageInput.addEventListener('change', (e)=>{
+// Images are uploaded to R2 when signed in, so the project JSON only stores a
+// short URL. Signed-out users fall back to inlining the data URL as before.
+async function uploadImage(file){
+  if(!cloud.user) return null;
+  try{
+    const res = await fetch('/api/uploads', {
+      method:'POST',
+      credentials:'same-origin',
+      headers:{ 'content-type': file.type },
+      body: file,
+    });
+    if(res.status === 401){ cloud.user = null; renderAccount(); return null; }
+    const j = await res.json().catch(()=>({}));
+    if(!res.ok){
+      flashSaveStatus(j.message || '画像のアップロードに失敗しました', true);
+      return null;
+    }
+    return j.url || null;
+  }catch(err){
+    console.error(err);
+    return null;
+  }
+}
+
+imageInput.addEventListener('change', async (e)=>{
   const file = e.target.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = (ev)=>{
-    const dataUrl = ev.target.result;
-    const probe = new Image();
-    probe.onload = ()=>{
-      if(pendingReplaceId){
-        const el = state.els.find(x=>x.id===pendingReplaceId);
-        if(el){
-          el.src = dataUrl;
-          const node = $(el.id);
-          const img = node ? node.querySelector('img') : null;
-          if(img) img.src = dataUrl;
-        }
-        pendingReplaceId = null;
-      } else {
-        addImageElement(dataUrl, probe.naturalWidth, probe.naturalHeight);
-      }
-    };
-    probe.src = dataUrl;
-  };
-  reader.readAsDataURL(file);
   imageInput.value = '';
+  if(!file) return;
+
+  const dataUrl = await new Promise((resolve, reject)=>{
+    const r = new FileReader();
+    r.onload = ev=>resolve(ev.target.result);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  }).catch(()=>null);
+  if(!dataUrl) return;
+
+  const dims = await new Promise(resolve=>{
+    const probe = new Image();
+    probe.onload = ()=>resolve({ w: probe.naturalWidth, h: probe.naturalHeight });
+    probe.onerror = ()=>resolve({ w:0, h:0 });
+    probe.src = dataUrl;
+  });
+
+  flashSaveStatus('画像を処理中…');
+  const uploaded = await uploadImage(file);
+  const src = uploaded || dataUrl;
+
+  if(pendingReplaceId){
+    const el = state.els.find(x=>x.id===pendingReplaceId);
+    if(el){
+      el.src = src;
+      const node = $(el.id);
+      const img = node ? node.querySelector('img') : null;
+      if(img) img.src = src;
+      commit();
+    }
+    pendingReplaceId = null;
+  } else {
+    addImageElement(src, dims.w, dims.h);
+  }
+  flashSaveStatus(uploaded ? '画像をクラウドに保存しました' : '画像を追加しました');
 });
 
 $('canvasBg').addEventListener('input', (e)=>{
   state.canvasBg = e.target.value;
   pageCanvas.style.background = state.canvasBg;
+});
+$('canvasBg').addEventListener('change', commit);
+
+// ---------------- Page settings / SEO modal ----------------
+function openPageSettings(){
+  syncPageFromState();
+  const p = currentPage();
+  const nav = state.site.nav;
+  const parentOpts = state.pages
+    .filter(x=>x.id !== p.id && !x.parentId)
+    .map(x=>`<option value="${x.id}" ${p.parentId===x.id?'selected':''}>${escapeHtml(x.name)}</option>`).join('');
+  $('pageModalBody').innerHTML = `
+    <div class="field"><label>ページ名</label><input type="text" id="pgName" value="${escapeHtml(p.name)}"></div>
+    <div class="field"><label>URL(スラッグ)</label><input type="text" id="pgSlug" value="${escapeHtml(p.slug)}">
+      <div style="font-size:11px;color:var(--text-muted);margin-top:5px;">書き出し名: ${escapeHtml(pageFileName(p))}</div></div>
+    <div class="field"><label>親ページ</label>
+      <select id="pgParent"><option value="">なし(トップ階層)</option>${parentOpts}</select></div>
+    <div class="field"><label>ナビゲーションに表示</label>
+      <div class="seg">
+        <button data-nav-in="1" class="${p.inNav!==false?'active':''}">表示する</button>
+        <button data-nav-in="0" class="${p.inNav===false?'active':''}">隠す</button>
+      </div></div>
+    <hr class="sep">
+    <div class="field"><label>SEO: タイトル</label><input type="text" id="seoTitle" value="${escapeHtml(p.seo.title||'')}" placeholder="${escapeHtml(p.name)}"></div>
+    <div class="field"><label>SEO: 説明文(description)</label><textarea id="seoDesc" placeholder="検索結果に表示される説明文">${escapeHtml(p.seo.description||'')}</textarea></div>
+    <div class="field"><label>OGP画像のURL</label><input type="text" id="seoOg" value="${escapeHtml(p.seo.ogImage||'')}" placeholder="https://..."></div>
+    <hr class="sep">
+    <div class="field"><label>ナビゲーションバー(サイト共通)</label>
+      <div class="seg">
+        <button data-navon="1" class="${nav.enabled?'active':''}">表示する</button>
+        <button data-navon="0" class="${!nav.enabled?'active':''}">表示しない</button>
+      </div></div>
+    <div class="field"><label>ナビの背景色</label><input type="color" id="navBg" value="${nav.bg}"></div>
+    <div class="field"><label>ナビの文字色</label><input type="color" id="navColor" value="${nav.color}"></div>`;
+  $('pageModal').classList.add('open');
+
+  const bind = (id, evt, fn)=>{ const n=$(id); if(n) n.addEventListener(evt, fn); };
+  bind('pgName','input', e=>{ p.name = e.target.value; renderPages(); });
+  bind('pgSlug','input', e=>{ p.slug = slugify(e.target.value, p.id); });
+  bind('pgParent','change', e=>{ p.parentId = e.target.value || null; renderPages(); });
+  bind('seoTitle','input', e=>{ p.seo.title = e.target.value; });
+  bind('seoDesc','input', e=>{ p.seo.description = e.target.value; });
+  bind('seoOg','input', e=>{ p.seo.ogImage = e.target.value; });
+  bind('navBg','input', e=>{ state.site.nav.bg = e.target.value; });
+  bind('navColor','input', e=>{ state.site.nav.color = e.target.value; });
+  $('pageModalBody').querySelectorAll('[data-nav-in]').forEach(b=>b.addEventListener('click', ()=>{
+    p.inNav = b.dataset.navIn === '1';
+    $('pageModalBody').querySelectorAll('[data-nav-in]').forEach(x=>x.classList.toggle('active', x===b));
+  }));
+  $('pageModalBody').querySelectorAll('[data-navon]').forEach(b=>b.addEventListener('click', ()=>{
+    state.site.nav.enabled = b.dataset.navon === '1';
+    $('pageModalBody').querySelectorAll('[data-navon]').forEach(x=>x.classList.toggle('active', x===b));
+  }));
+}
+$('btnPageSettings').addEventListener('click', openPageSettings);
+$('btnAddPage').addEventListener('click', ()=>addPage(null));
+$('pageModalClose').addEventListener('click', ()=>$('pageModal').classList.remove('open'));
+$('pageModal').addEventListener('click', (e)=>{ if(e.target === $('pageModal')) $('pageModal').classList.remove('open'); });
+document.querySelectorAll('[data-device]').forEach(b=>b.addEventListener('click', ()=>setDevice(b.dataset.device)));
+
+// ---------------- History / snap controls ----------------
+// Catch-all: any finished inspector interaction becomes one history entry.
+// commit() de-duplicates identical snapshots, so this never adds noise.
+inspector.addEventListener('change', ()=>commit());
+inspector.addEventListener('click', (e)=>{ if(e.target.closest('button')) commit(); });
+
+$('btnUndo').addEventListener('click', undo);
+$('btnRedo').addEventListener('click', redo);
+$('btnSnap').addEventListener('click', ()=>{
+  state.snap = !state.snap;
+  $('btnSnap').classList.toggle('toggled', state.snap);
+  if(!state.snap) hideGuides();
+  flashSaveStatus(state.snap ? 'スナップ:オン' : 'スナップ:オフ');
 });
 
 // ---------------- Zoom controls ----------------
@@ -1672,12 +2453,160 @@ function extFromMime(mime){
   return 'png';
 }
 
-function buildCss(elementRules){
+// Markup for one element. Images are collected into `images` for the zip.
+function elMarkup(el, images, ctx){
+  const animType = el.anim && el.anim.type;
+  const hasAnim = animType && animType!=='none';
+  const trigAttr = hasAnim ? ` data-anim-trigger="${el.anim.trigger}" data-anim-duration="${el.anim.duration}" data-anim-delay="${el.anim.delay}"` : '';
+  const animClass = hasAnim ? ` anim-${animType} anim-pending` : '';
+  if(el.type==='text'){
+    const content = escapeHtml(el.text).replace(/\n/g,'<br>');
+    return `    <div class="el el-${el.id}${animClass}"${trigAttr}>${content}</div>`;
+  }
+  if(el.type==='rect' || el.type==='ellipse'){
+    return `    <div class="el el-${el.id}${animClass}"${trigAttr}></div>`;
+  }
+  if(el.type==='embed'){
+    return `    <div class="el el-${el.id}${animClass}"${trigAttr}>${el.html||''}</div>`;
+  }
+  if(el.type==='image'){
+    const src = String(el.src||'');
+    let ext = 'png';
+    if(src.startsWith('data:')){
+      const m = src.match(/data:(.*?);/);
+      ext = extFromMime(m ? m[1] : 'image/png');
+    } else {
+      const m = src.split('?')[0].match(/\.([a-z0-9]+)$/i);
+      if(m) ext = m[1].toLowerCase();
+    }
+    const filename = `img-${++ctx.imgIdx}.${ext}`;
+    // Hosted images are fetched later, in parallel, by exportZip().
+    images.push(src.startsWith('data:')
+      ? { filename, blob: dataURLtoBlob(src) }
+      : { filename, url: src });
+    return `    <div class="el el-${el.id}${animClass}"${trigAttr}><img src="images/${filename}" alt="${escapeHtml(el.alt||'')}"></div>`;
+  }
+  if(el.type==='vector'){
+    const ptsAttr = el.points.map(pt=>(pt.x-el.x)+','+(pt.y-el.y)).join(' ');
+    const gradId = 'grad-'+el.id;
+    let fillAttr, defsMarkup = '';
+    if(el.fill.mode==='gradient' && el.closed){
+      fillAttr = `url(#${gradId})`;
+      defsMarkup = el.fill.gradType==='radial'
+        ? `<radialGradient id="${gradId}" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="${el.fill.from}"/><stop offset="100%" stop-color="${el.fill.to}"/></radialGradient>`
+        : `<linearGradient id="${gradId}" gradientTransform="rotate(${el.fill.angle} 0.5 0.5)"><stop offset="0%" stop-color="${el.fill.from}"/><stop offset="100%" stop-color="${el.fill.to}"/></linearGradient>`;
+    } else {
+      fillAttr = el.closed ? el.fill.color : 'none';
+    }
+    const strokeAttr = el.borderWidth>0 ? `stroke="${el.borderColor||'#000'}" stroke-width="${el.borderWidth}"` : 'stroke="none"';
+    const tag = el.closed ? 'polygon' : 'polyline';
+    const svgMarkup = `<svg width="100%" height="100%" viewBox="0 0 ${el.w} ${el.h}" preserveAspectRatio="none">${defsMarkup?'<defs>'+defsMarkup+'</defs>':''}<${tag} points="${ptsAttr}" fill="${fillAttr}" ${strokeAttr} stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+    return `    <div class="el el-${el.id}${animClass}"${trigAttr}>${svgMarkup}</div>`;
+  }
+  return '';
+}
+
+// Base rule uses the desktop slot; the mobile slot only emits what differs.
+function elCssRule(el, geo){
+  let rule = `.el-${el.id}{position:absolute;left:${geo.x}px;top:${geo.y}px;width:${geo.w}px;height:${geo.h}px;z-index:${el.z};box-sizing:border-box;`;
+  if(geo.hidden) rule += 'display:none;';
+  if(el.type==='text'){
+    rule += `font-size:${geo.fontSize}px;color:${el.color};font-weight:${el.fontWeight};text-align:${el.textAlign};font-family:${el.fontFamily};line-height:1.4;`;
+    if(el.writingMode==='vertical') rule += 'writing-mode:vertical-rl;text-orientation:mixed;';
+  } else if(el.type==='rect'){
+    rule += `background:${fillToCss(el.fill)};border-radius:${el.radius}px;`;
+    if(el.borderWidth>0) rule += `border:${el.borderWidth}px solid ${el.borderColor||'#000'};`;
+  } else if(el.type==='ellipse'){
+    rule += `background:${fillToCss(el.fill)};border-radius:50%;`;
+    if(el.borderWidth>0) rule += `border:${el.borderWidth}px solid ${el.borderColor||'#000'};`;
+  }
+  rule += '}';
+  if(el.type==='image'){
+    rule += `\n.el-${el.id} img{width:100%;height:100%;object-fit:${el.objectFit};border-radius:${el.radius||0}px;display:block;}`;
+  }
+  if(el.type==='embed'){
+    rule += `\n.el-${el.id} iframe,.el-${el.id} > *{width:100%;height:100%;border:0;display:block;}`;
+  }
+  return rule;
+}
+function elSpCssRule(el, pc, sp){
+  const parts = [];
+  if(sp.x !== pc.x) parts.push(`left:${sp.x}px`);
+  if(sp.y !== pc.y) parts.push(`top:${sp.y}px`);
+  if(sp.w !== pc.w) parts.push(`width:${sp.w}px`);
+  if(sp.h !== pc.h) parts.push(`height:${sp.h}px`);
+  if(el.type==='text' && sp.fontSize !== pc.fontSize) parts.push(`font-size:${sp.fontSize}px`);
+  if(!!sp.hidden !== !!pc.hidden) parts.push(sp.hidden ? 'display:none' : 'display:block');
+  return parts.length ? `  .el-${el.id}{${parts.join(';')};}` : '';
+}
+
+// Site navigation, shared by every exported page.
+function buildNavHtml(currentId){
+  const nav = state.site.nav;
+  if(!nav.enabled) return '';
+  const tops = state.pages.filter(p=>!p.parentId && p.inNav !== false);
+  if(!tops.length) return '';
+  const items = tops.map(p=>{
+    const kids = state.pages.filter(c=>c.parentId===p.id && c.inNav !== false);
+    const sub = kids.length
+      ? `<ul class="nav-sub">${kids.map(k=>`<li><a href="${pageFileName(k)}">${escapeHtml(k.name)}</a></li>`).join('')}</ul>`
+      : '';
+    const cur = p.id===currentId ? ' is-current' : '';
+    return `<li class="nav-item${kids.length?' has-sub':''}"><a class="nav-link${cur}" href="${pageFileName(p)}">${escapeHtml(p.name)}</a>${sub}</li>`;
+  }).join('');
+  return `<nav class="site-nav"><div class="nav-inner"><ul class="nav-list">${items}</ul></div></nav>`;
+}
+function buildNavCss(){
+  const nav = state.site.nav;
+  if(!nav.enabled) return '';
+  return `
+.site-nav{position:sticky;top:0;z-index:1000;background:${nav.bg};border-bottom:1px solid rgba(0,0,0,.08);}
+.nav-inner{max-width:1200px;margin:0 auto;padding:0 20px;}
+.nav-list{display:flex;gap:4px;list-style:none;margin:0;padding:0;flex-wrap:wrap;}
+.nav-item{position:relative;}
+.nav-link{display:block;padding:0 16px;line-height:${nav.height}px;color:${nav.color};text-decoration:none;font-size:15px;}
+.nav-link:hover{color:${nav.accent};}
+.nav-link.is-current{color:${nav.accent};box-shadow:inset 0 -2px 0 ${nav.accent};}
+.nav-sub{
+  position:absolute;left:0;top:100%;min-width:180px;background:${nav.bg};list-style:none;margin:0;padding:6px 0;
+  border:1px solid rgba(0,0,0,.08);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);
+  opacity:0;visibility:hidden;transition:opacity .15s;
+}
+.nav-item:hover .nav-sub,.nav-item:focus-within .nav-sub{opacity:1;visibility:visible;}
+.nav-sub a{display:block;padding:9px 16px;color:${nav.color};text-decoration:none;font-size:14px;}
+.nav-sub a:hover{background:rgba(0,0,0,.05);color:${nav.accent};}
+@media (max-width:768px){
+  .nav-list{gap:0;}
+  .nav-link{padding:0 11px;font-size:14px;line-height:52px;}
+}`;
+}
+
+function buildPageHead(page, navHtml){
+  const title = escapeHtml(page.seo.title || page.name || 'マイページ');
+  const desc = page.seo.description ? `\n<meta name="description" content="${escapeHtml(page.seo.description)}">` : '';
+  const ogDesc = page.seo.description ? `\n<meta property="og:description" content="${escapeHtml(page.seo.description)}">` : '';
+  const ogImg = page.seo.ogImage ? `\n<meta property="og:image" content="${escapeHtml(page.seo.ogImage)}">` : '';
+  return `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${title}</title>${desc}
+<meta property="og:title" content="${title}">
+<meta property="og:type" content="website">${ogDesc}${ogImg}
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+${navHtml}`;
+}
+
+function buildCss(elementRules, spRules, maxHeight){
   return `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Shippori+Mincho:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap');
 *{box-sizing:border-box;}
 body{margin:0;font-family:'Noto Sans JP',sans-serif;background:#f4f3ee;}
+${buildNavCss()}
 .page-wrap{width:100%;overflow:hidden;}
-.page{position:relative;width:${state.canvasWidth}px;min-height:${state.canvasHeight}px;background:${state.canvasBg};margin:0 auto;transform-origin:top left;}
+.page{position:relative;width:${state.desktopWidth}px;min-height:${maxHeight}px;margin:0 auto;transform-origin:top left;}
 .el{position:absolute;}
 ${elementRules}
 .anim-pending{opacity:0;}
@@ -1694,28 +2623,10 @@ ${elementRules}
 .anim-slide-left.is-visible{animation-name:kfSlideLeft;}
 .anim-slide-right.is-visible{animation-name:kfSlideRight;}
 .anim-zoom-in.is-visible{animation-name:kfZoomIn;}
-`;
+@media (max-width:768px){
+  .page{width:${state.mobileWidth}px;}
+${spRules}
 }
-
-function buildHtml(bodyParts, safeProjectJson){
-  return `<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>マイページ</title>
-<link rel="stylesheet" href="styles.css">
-</head>
-<body>
-<div class="page-wrap">
-  <div class="page">
-${bodyParts}
-  </div>
-</div>
-<script src="script.js"><\/script>
-<script type="application/json" id="page-builder-data">${safeProjectJson}<\/script>
-</body>
-</html>
 `;
 }
 
@@ -1723,7 +2634,10 @@ function buildJs(){
   return `function fitScale(){
   var page = document.querySelector('.page');
   var wrap = document.querySelector('.page-wrap');
-  var w = ${state.canvasWidth};
+  if(!page || !wrap) return;
+  page.style.transform = 'none';
+  wrap.style.height = '';
+  var w = page.offsetWidth;
   var scale = Math.min(1, window.innerWidth / w);
   page.style.transform = 'scale(' + scale + ')';
   wrap.style.height = (page.offsetHeight * scale) + 'px';
@@ -1735,17 +2649,12 @@ fitScale();
 document.addEventListener('DOMContentLoaded', function(){
   var animEls = document.querySelectorAll('[data-anim-trigger]');
   animEls.forEach(function(el){
-    var dur = el.dataset.animDuration || '600';
-    var delay = el.dataset.animDelay || '0';
-    el.style.animationDuration = dur + 'ms';
-    el.style.animationDelay = delay + 'ms';
+    el.style.animationDuration = (el.dataset.animDuration || '600') + 'ms';
+    el.style.animationDelay = (el.dataset.animDelay || '0') + 'ms';
   });
-
-  var loadEls = document.querySelectorAll('[data-anim-trigger="load"]');
-  loadEls.forEach(function(el){
+  document.querySelectorAll('[data-anim-trigger="load"]').forEach(function(el){
     requestAnimationFrame(function(){ el.classList.add('is-visible'); });
   });
-
   var scrollEls = document.querySelectorAll('[data-anim-trigger="scroll"]');
   if('IntersectionObserver' in window){
     var io = new IntersectionObserver(function(entries){
@@ -1766,90 +2675,75 @@ document.addEventListener('DOMContentLoaded', function(){
 
 async function exportZip(){
   const btn = $('btnExport');
-  const original = btn.textContent;
-  btn.textContent = '書き出し中…';
   btn.disabled = true;
   try{
     if(typeof JSZip === 'undefined'){
       throw new Error('JSZipの読み込みに失敗しました。通信環境を確認してもう一度お試しください。');
     }
+    syncPageFromState();
+    syncDeviceFromState();
+
     const images = [];
-    let imgIdx = 0;
-    const sorted = state.els.slice().sort((a,b)=>a.z-b.z);
-
-    const bodyParts = sorted.map(el=>{
-      const animType = el.anim.type;
-      const hasAnim = animType && animType!=='none';
-      const trigAttr = hasAnim ? ` data-anim-trigger="${el.anim.trigger}" data-anim-duration="${el.anim.duration}" data-anim-delay="${el.anim.delay}"` : '';
-      const animClass = hasAnim ? ` anim-${animType} anim-pending` : '';
-      if(el.type==='text'){
-        const content = escapeHtml(el.text).replace(/\n/g,'<br>');
-        return `    <div class="el el-${el.id}${animClass}"${trigAttr}>${content}</div>`;
-      } else if(el.type==='rect' || el.type==='ellipse'){
-        return `    <div class="el el-${el.id}${animClass}"${trigAttr}></div>`;
-      } else if(el.type==='image'){
-        const mimeMatch = el.src.match(/data:(.*?);/);
-        const mime = mimeMatch ? mimeMatch[1] : 'image/png';
-        const ext = extFromMime(mime);
-        const filename = `img-${++imgIdx}.${ext}`;
-        images.push({filename, blob: dataURLtoBlob(el.src)});
-        return `    <div class="el el-${el.id}${animClass}"${trigAttr}><img src="images/${filename}" alt=""></div>`;
-      } else if(el.type==='vector'){
-        const ptsAttr = el.points.map(p=>(p.x-el.x)+','+(p.y-el.y)).join(' ');
-        const gradId = 'grad-'+el.id;
-        let fillAttr, defsMarkup = '';
-        if(el.fill.mode==='gradient' && el.closed){
-          fillAttr = `url(#${gradId})`;
-          if(el.fill.gradType==='radial'){
-            defsMarkup = `<radialGradient id="${gradId}" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="${el.fill.from}"/><stop offset="100%" stop-color="${el.fill.to}"/></radialGradient>`;
-          } else {
-            defsMarkup = `<linearGradient id="${gradId}" gradientTransform="rotate(${el.fill.angle} 0.5 0.5)"><stop offset="0%" stop-color="${el.fill.from}"/><stop offset="100%" stop-color="${el.fill.to}"/></linearGradient>`;
-          }
-        } else {
-          fillAttr = el.closed ? el.fill.color : 'none';
-        }
-        const strokeAttr = el.borderWidth>0 ? `stroke="${el.borderColor||'#000'}" stroke-width="${el.borderWidth}"` : 'stroke="none"';
-        const tag = el.closed ? 'polygon' : 'polyline';
-        const svgMarkup = `<svg width="100%" height="100%" viewBox="0 0 ${el.w} ${el.h}" preserveAspectRatio="none">${defsMarkup?'<defs>'+defsMarkup+'</defs>':''}<${tag} points="${ptsAttr}" fill="${fillAttr}" ${strokeAttr} stroke-linejoin="round" stroke-linecap="round"/></svg>`;
-        return `    <div class="el el-${el.id}${animClass}"${trigAttr}>${svgMarkup}</div>`;
-      }
-      return '';
-    }).join('\n');
-
-    const cssRules = sorted.map(el=>{
-      let rule = `.el-${el.id}{position:absolute;left:${el.x}px;top:${el.y}px;width:${el.w}px;height:${el.h}px;z-index:${el.z};box-sizing:border-box;`;
-      if(el.type==='text'){
-        rule += `font-size:${el.fontSize}px;color:${el.color};font-weight:${el.fontWeight};text-align:${el.textAlign};font-family:${el.fontFamily};line-height:1.4;`;
-        if(el.writingMode==='vertical') rule += `writing-mode:vertical-rl;text-orientation:mixed;`;
-      } else if(el.type==='rect'){
-        rule += `background:${fillToCss(el.fill)};border-radius:${el.radius}px;`;
-        if(el.borderWidth>0) rule += `border:${el.borderWidth}px solid ${el.borderColor||'#000'};`;
-      } else if(el.type==='ellipse'){
-        rule += `background:${fillToCss(el.fill)};border-radius:50%;`;
-        if(el.borderWidth>0) rule += `border:${el.borderWidth}px solid ${el.borderColor||'#000'};`;
-      }
-      rule += '}';
-      if(el.type==='image'){
-        rule += `\n.el-${el.id} img{width:100%;height:100%;object-fit:${el.objectFit};border-radius:${el.radius||0}px;display:block;}`;
-      }
-      return rule;
-    }).join('\n');
-
-    const projectData = JSON.stringify({ version:2, canvasWidth: state.canvasWidth, canvasHeight: state.canvasHeight, canvasBg: state.canvasBg, els: state.els });
-    const safeProjectJson = projectData.replace(/<\/script/gi, '<\\/script');
-
-    const css = buildCss(cssRules);
-    const html = buildHtml(bodyParts, safeProjectJson);
-    const js = buildJs();
-
+    const ctx = { imgIdx: 0 };
     const zip = new JSZip();
-    zip.file('index.html', html);
+    const allRules = [];
+    const allSpRules = [];
+    let maxPcHeight = 0, maxSpHeight = 0;
+
+    state.pages.forEach(page=>{
+      const sorted = page.els.slice().sort((a,b)=>a.z-b.z);
+      const bodyParts = sorted.map(el=>elMarkup(el, images, ctx)).join('\n');
+
+      sorted.forEach(el=>{
+        const pc = el.pc || pickDeviceProps(el);
+        const sp = el.sp;
+        allRules.push(elCssRule(el, pc));
+        if(sp){
+          const r = elSpCssRule(el, pc, sp);
+          if(r) allSpRules.push(r);
+        }
+      });
+
+      const pcH = page.canvasHeight;
+      maxPcHeight = Math.max(maxPcHeight, pcH);
+      maxSpHeight = Math.max(maxSpHeight, page.spHeight || pcH);
+
+      const navHtml = buildNavHtml(page.id);
+      const isHome = isHomePage(page);
+      const projectJson = isHome
+        ? JSON.stringify(currentProjectData()).replace(/<\/script/gi, '<\\/script')
+        : '';
+      const dataScript = isHome
+        ? `\n<script type="application/json" id="page-builder-data">${projectJson}<\/script>`
+        : '';
+      const html = buildPageHead(page, navHtml) + `
+<div class="page-wrap">
+  <div class="page page-${page.id}" style="background:${page.canvasBg};min-height:${pcH}px;">
+${bodyParts}
+  </div>
+</div>
+<script src="script.js"><\/script>${dataScript}
+</body>
+</html>
+`;
+      zip.file(pageFileName(page), html);
+    });
+
+    const css = buildCss(allRules.join('\n'), allSpRules.join('\n'), maxPcHeight);
     zip.file('styles.css', css);
-    zip.file('script.js', js);
+    zip.file('script.js', buildJs());
     if(images.length){
+      await Promise.all(images.map(async img=>{
+        if(img.blob) return;
+        try{
+          const res = await fetch(img.url, { credentials:'same-origin' });
+          if(res.ok) img.blob = await res.blob();
+        }catch(err){ console.error('image fetch failed', img.url, err); }
+      }));
       const folder = zip.folder('images');
-      images.forEach(img=>folder.file(img.filename, img.blob));
+      images.forEach(img=>{ if(img.blob) folder.file(img.filename, img.blob); });
     }
+
     const blob = await zip.generateAsync({type:'blob'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1859,11 +2753,11 @@ async function exportZip(){
     a.click();
     a.remove();
     setTimeout(()=>URL.revokeObjectURL(url), 2000);
+    flashSaveStatus(state.pages.length + 'ページを書き出しました');
   } catch(err){
     console.error(err);
     alert('書き出し中にエラーが発生しました。\n' + err.message);
   } finally {
-    btn.textContent = original;
     btn.disabled = false;
   }
 }
@@ -1871,20 +2765,46 @@ $('btnExport').addEventListener('click', exportZip);
 
 // ---------------- Import ----------------
 function applyLoadedProject(data){
-  state.els = data.els || [];
-  state.canvasWidth = data.canvasWidth || 1200;
-  state.canvasHeight = data.canvasHeight || 1600;
-  state.canvasBg = data.canvasBg || '#ffffff';
+  state.desktopWidth = data.desktopWidth || data.canvasWidth || 1200;
+  state.mobileWidth = data.mobileWidth || 480;
+  state.device = data.device === 'sp' ? 'sp' : 'pc';
+  state.site = data.site || { nav: { enabled:true, bg:'#ffffff', color:'#1a1a1a', accent:'#6c5ce7', height:64 } };
+  if(!state.site.nav) state.site.nav = { enabled:true, bg:'#ffffff', color:'#1a1a1a', accent:'#6c5ce7', height:64 };
+
+  if(Array.isArray(data.pages) && data.pages.length){
+    state.pages = data.pages.map(p=>Object.assign(newPage(p.name), p, {
+      seo: p.seo || { title:'', description:'', ogImage:'' },
+      els: p.els || [],
+    }));
+  } else {
+    // v2 and earlier held a single page inline.
+    const p = newPage('ホーム', { slug:'index' });
+    p.els = data.els || [];
+    p.canvasHeight = data.canvasHeight || 1600;
+    p.canvasBg = data.canvasBg || '#ffffff';
+    state.pages = [p];
+  }
+  const wanted = data.currentPageId && state.pages.some(p=>p.id===data.currentPageId)
+    ? data.currentPageId : state.pages[0].id;
+  state.currentPageId = wanted;
+  loadPageIntoState(state.pages.find(p=>p.id===wanted));
+  state.canvasWidth = state.device === 'sp' ? state.mobileWidth : state.desktopWidth;
+
+  // Ids must stay unique across every page, so seed the counter past them all.
   let maxNum = 0;
-  state.els.forEach(el=>{ const n = parseInt(String(el.id).replace(/[^0-9]/g,''),10); if(!isNaN(n)) maxNum = Math.max(maxNum,n); });
-  state.idCounter = maxNum+1;
+  const bump = (id)=>{ const n = parseInt(String(id).replace(/[^0-9]/g,''),10); if(!isNaN(n)) maxNum = Math.max(maxNum, n); };
+  state.pages.forEach(p=>{ bump(p.id); p.els.forEach(el=>{ bump(el.id); if(el.groupId) bump(el.groupId); }); });
+  state.idCounter = maxNum + 1;
+
   state.selectedId = null;
   state.selectedIds = [];
   syncCanvasBox();
   const cbg = $('canvasBg'); if(cbg) cbg.value = state.canvasBg;
   renderAll();
+  renderPages();
   renderInspector();
   zoomToFit();
+  historyReset();
 }
 
 $('btnImport').addEventListener('click', ()=>{ zipInput.click(); });
@@ -1933,7 +2853,21 @@ function flashSaveStatus(msg, isError){
 
 const LS_KEY = 'page-builder-autosave';
 function currentProjectData(){
-  return { version:2, canvasWidth: state.canvasWidth, canvasHeight: state.canvasHeight, canvasBg: state.canvasBg, els: state.els };
+  syncPageFromState();
+  syncDeviceFromState();
+  return {
+    version: 3,
+    canvasWidth: state.canvasWidth,
+    canvasHeight: state.canvasHeight,
+    canvasBg: state.canvasBg,
+    desktopWidth: state.desktopWidth,
+    mobileWidth: state.mobileWidth,
+    device: state.device,
+    site: state.site,
+    pages: state.pages,
+    currentPageId: state.currentPageId,
+    els: state.els,          // kept so v2 readers still see the current page
+  };
 }
 
 async function saveTemp(){
@@ -2136,13 +3070,21 @@ function seedDemoContent(){
 }
 
 (async function init(){
+  const home = newPage('ホーム', { slug:'index' });
+  state.pages = [home];
+  state.currentPageId = home.id;
+  loadPageIntoState(home);
+  state.canvasWidth = state.desktopWidth;
   syncCanvasBox();
   renderAccount();
   refreshAuth();
   let restored = false;
   try{ restored = await loadTemp(); }catch(err){ console.log(err); }
   if(!restored){ seedDemoContent(); }
+  renderPages();
   zoomToFit();
+  historyReset();
+  $('btnSnap').classList.toggle('toggled', state.snap);
 })();
 </script>
 </body>
