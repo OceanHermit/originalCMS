@@ -17,3 +17,14 @@ CREATE TABLE IF NOT EXISTS projects (
 );
 
 CREATE INDEX IF NOT EXISTS idx_projects_user ON projects(user_id);
+
+CREATE TABLE IF NOT EXISTS sites (
+  slug TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  project_id TEXT,
+  title TEXT,
+  bytes INTEGER NOT NULL DEFAULT 0,
+  published_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_sites_user ON sites(user_id);
