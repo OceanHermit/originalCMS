@@ -205,6 +205,12 @@ button,select,input{font-family:inherit;}
   width:100%;background:var(--bg-panel-2);border:1px solid var(--border);color:var(--text);
   padding:7px 9px;border-radius:6px;font-size:12.5px;resize:vertical;min-height:60px;font-family:inherit;
 }
+#publishStatus{margin-top:8px;font-size:11px;color:var(--text-muted);line-height:1.7;}
+#publishStatus a{color:var(--accent);text-decoration:none;word-break:break-all;}
+#publishStatus a:hover{text-decoration:underline;}
+#publishStatus .live-dot{
+  display:inline-block;width:7px;height:7px;border-radius:50%;background:#2ecc71;margin-right:5px;
+}
 .color-tools{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;align-items:center;}
 .mini-btn{
   width:22px;height:22px;padding:0;border-radius:5px;cursor:pointer;flex:0 0 auto;
@@ -348,6 +354,11 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0;}
         <div id="pageList"></div>
         <button class="btn full-btn" id="btnAddPage" data-icon="plus" style="margin-top:0;">ページを追加</button>
         <button class="btn full-btn" id="btnPageSettings" data-icon="globe">ページ設定 / SEO</button>
+      </div>
+      <div class="rail-section">
+        <h4>公開</h4>
+        <button class="btn full-btn" id="btnPublishRail" data-icon="rocket" style="margin-top:0;">Webに公開する</button>
+        <div id="publishStatus"></div>
       </div>
       <div class="rail-section">
         <h4>要素を追加</h4>
@@ -3083,6 +3094,22 @@ const publishState = { slug: null, url: null };
 
 function closePublishModal(){ $('publishModal').classList.remove('open'); }
 
+// Mirrors the publish state into the rail so the live URL is always visible.
+function renderPublishStatus(){
+  const el = $('publishStatus');
+  if(!el) return;
+  if(publishState.url){
+    el.innerHTML = `<span class="live-dot"></span>公開中<br><a href="${escapeHtml(publishState.url)}" target="_blank" rel="noopener">${escapeHtml(publishState.url)}</a>`;
+  } else {
+    el.textContent = 'まだ公開していません。';
+  }
+}
+function setPublishState(slug, url){
+  publishState.slug = slug || null;
+  publishState.url = url || null;
+  renderPublishStatus();
+}
+
 function renderPublishModal(view){
   const body = $('publishModalBody');
   if(view.loading){
@@ -3142,8 +3169,7 @@ async function openPublishModal(){
     // Match this project to an existing site so republishing keeps the URL.
     const mine = (j.sites || []).find(sitesMatch);
     if(mine){
-      publishState.slug = mine.slug;
-      publishState.url = new URL('/s/' + mine.slug + '/', location.origin).href;
+      setPublishState(mine.slug, new URL('/s/' + mine.slug + '/', location.origin).href);
     }
     renderPublishModal({});
   }catch(err){
@@ -3177,8 +3203,7 @@ async function doPublish(title){
       renderPublishModal({ error: j.message || ('公開に失敗しました (HTTP ' + res.status + ')') });
       return;
     }
-    publishState.slug = j.slug;
-    publishState.url = j.url;
+    setPublishState(j.slug, j.url);
     renderPublishModal({ published:true, url:j.url });
     flashSaveStatus('公開しました');
   }catch(err){
@@ -3194,8 +3219,7 @@ async function unpublishSite(){
   try{
     const res = await fetch('/api/publish/' + publishState.slug, { method:'DELETE', credentials:'same-origin' });
     if(!res.ok && res.status !== 404) throw new Error('HTTP ' + res.status);
-    publishState.slug = null;
-    publishState.url = null;
+    setPublishState(null, null);
     renderPublishModal({});
     flashSaveStatus('公開を停止しました');
   }catch(err){
@@ -3205,6 +3229,8 @@ async function unpublishSite(){
 }
 
 $('btnPublish').addEventListener('click', openPublishModal);
+$('btnPublishRail').addEventListener('click', openPublishModal);
+renderPublishStatus();
 $('publishModalClose').addEventListener('click', closePublishModal);
 $('publishModal').addEventListener('click', (e)=>{ if(e.target === $('publishModal')) closePublishModal(); });
 
