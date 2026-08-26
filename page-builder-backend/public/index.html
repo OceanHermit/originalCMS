@@ -328,7 +328,8 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0;}
       <span id="saveStatus"></span>
       <span class="tb-sep"></span>
       <button class="icon-btn" id="btnPreview" data-icon="play" title="アニメーションを再生" aria-label="再生"></button>
-      <button class="icon-btn primary" id="btnExport" data-icon="download" title="ZIPで書き出す" aria-label="ZIPで書き出す"></button>
+      <button class="icon-btn" id="btnExport" data-icon="download" title="ZIPで書き出す" aria-label="ZIPで書き出す"></button>
+      <button class="icon-btn primary" id="btnPublish" data-icon="rocket" title="Webに公開する" aria-label="Webに公開する"></button>
       <span id="accountArea"></span>
       <button class="icon-btn mobile-only" id="btnToggleInspector" data-icon="sliders" title="プロパティ" aria-label="プロパティ"></button>
     </div>
@@ -408,6 +409,16 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0;}
 </div>
 <div id="penHint">クリックで頂点を追加・Enter/ダブルクリックで確定・Escでキャンセル・Backspaceで1点戻る</div>
 <input type="file" id="zipInput" accept=".zip" hidden>
+
+<div class="modal-overlay" id="publishModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Webに公開</h3>
+      <button class="modal-close" id="publishModalClose">×</button>
+    </div>
+    <div class="modal-body" id="publishModalBody"></div>
+  </div>
+</div>
 
 <div class="modal-overlay" id="pageModal">
   <div class="modal">
@@ -553,6 +564,7 @@ const ICONS = {
   trash:      svgS('<path d="M4 7h16"/><path d="M9.5 7V5.5A1.5 1.5 0 0 1 11 4h2a1.5 1.5 0 0 1 1.5 1.5V7"/><path d="M6.5 7 7.4 19a1.6 1.6 0 0 0 1.6 1.5h6a1.6 1.6 0 0 0 1.6-1.5L17.5 7"/>'),
   monitor:    svgS('<rect x="2.5" y="4" width="19" height="12.5" rx="1.6"/><path d="M8.5 20.5h7M12 16.5v4"/>'),
   phone:      svgS('<rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18.7h2"/>'),
+  rocket:     svgS('<path d="M13.5 4.5c3-2 6-2 6-2s0 3-2 6c-1.6 2.4-4.2 5-6.4 6.4L8 12.9C9.4 10.7 11.1 6.1 13.5 4.5Z"/><path d="M8.5 13 5 12l2-2.6 2.6.4"/><path d="M11 15.5 12 19l2.6-2v-2.6"/><path d="M6.5 17.5 4 20"/>'),
   globe:      svgS('<circle cx="12" cy="12" r="9"/><path d="M3.2 9.5h17.6M3.2 14.5h17.6"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18Z"/>'),
   eyedropper: svgS('<path d="m15.5 3.5 5 5"/><path d="m13.5 5.5 5 5"/><path d="M16 8 8.5 15.5 8 19l3.5-.5L19 11"/><path d="M5.5 18.5 4 20"/>'),
   group:      svgS('<rect x="3.5" y="3.5" width="8" height="8" rx="1"/><rect x="12.5" y="12.5" width="8" height="8" rx="1"/><path d="M12.5 7.5h4a1 1 0 0 1 1 1v4"/>'),
@@ -2471,6 +2483,11 @@ function elMarkup(el, images, ctx){
   }
   if(el.type==='image'){
     const src = String(el.src||'');
+    if(ctx.inlineImages){
+      // Published pages point straight at the hosted image (or keep the data
+      // URL), so nothing has to be copied alongside the HTML.
+      return `    <div class="el el-${el.id}${animClass}"${trigAttr}><img src="${escapeHtml(src)}" alt="${escapeHtml(el.alt||'')}"></div>`;
+    }
     let ext = 'png';
     if(src.startsWith('data:')){
       const m = src.match(/data:(.*?);/);
@@ -2673,50 +2690,44 @@ document.addEventListener('DOMContentLoaded', function(){
 `;
 }
 
-async function exportZip(){
-  const btn = $('btnExport');
-  btn.disabled = true;
-  try{
-    if(typeof JSZip === 'undefined'){
-      throw new Error('JSZipの読み込みに失敗しました。通信環境を確認してもう一度お試しください。');
-    }
-    syncPageFromState();
-    syncDeviceFromState();
+// Renders the whole site to plain text files. `inlineImages` keeps image URLs
+// as-is (used when publishing); otherwise images are collected for the zip.
+function buildSiteFiles(opts){
+  opts = opts || {};
+  syncPageFromState();
+  syncDeviceFromState();
 
-    const images = [];
-    const ctx = { imgIdx: 0 };
-    const zip = new JSZip();
-    const allRules = [];
-    const allSpRules = [];
-    let maxPcHeight = 0, maxSpHeight = 0;
+  const images = [];
+  const ctx = { imgIdx: 0, inlineImages: !!opts.inlineImages };
+  const files = {};
+  const allRules = [];
+  const allSpRules = [];
+  let maxPcHeight = 0;
 
-    state.pages.forEach(page=>{
-      const sorted = page.els.slice().sort((a,b)=>a.z-b.z);
-      const bodyParts = sorted.map(el=>elMarkup(el, images, ctx)).join('\n');
+  state.pages.forEach(page=>{
+    const sorted = page.els.slice().sort((a,b)=>a.z-b.z);
+    const bodyParts = sorted.map(el=>elMarkup(el, images, ctx)).join('\n');
 
-      sorted.forEach(el=>{
-        const pc = el.pc || pickDeviceProps(el);
-        const sp = el.sp;
-        allRules.push(elCssRule(el, pc));
-        if(sp){
-          const r = elSpCssRule(el, pc, sp);
-          if(r) allSpRules.push(r);
-        }
-      });
+    sorted.forEach(el=>{
+      const pc = el.pc || pickDeviceProps(el);
+      allRules.push(elCssRule(el, pc));
+      if(el.sp){
+        const r = elSpCssRule(el, pc, el.sp);
+        if(r) allSpRules.push(r);
+      }
+    });
 
-      const pcH = page.canvasHeight;
-      maxPcHeight = Math.max(maxPcHeight, pcH);
-      maxSpHeight = Math.max(maxSpHeight, page.spHeight || pcH);
+    const pcH = page.canvasHeight;
+    maxPcHeight = Math.max(maxPcHeight, pcH);
 
-      const navHtml = buildNavHtml(page.id);
-      const isHome = isHomePage(page);
-      const projectJson = isHome
-        ? JSON.stringify(currentProjectData()).replace(/<\/script/gi, '<\\/script')
-        : '';
-      const dataScript = isHome
-        ? `\n<script type="application/json" id="page-builder-data">${projectJson}<\/script>`
-        : '';
-      const html = buildPageHead(page, navHtml) + `
+    const isHome = isHomePage(page);
+    // The editable project JSON is only embedded in the downloadable zip, so a
+    // published site never exposes its own source.
+    const dataScript = (opts.includeSource && isHome)
+      ? `\n<script type="application/json" id="page-builder-data">${JSON.stringify(currentProjectData()).replace(/<\/script/gi, '<\\/script')}<\/script>`
+      : '';
+
+    files[pageFileName(page)] = buildPageHead(page, buildNavHtml(page.id)) + `
 <div class="page-wrap">
   <div class="page page-${page.id}" style="background:${page.canvasBg};min-height:${pcH}px;">
 ${bodyParts}
@@ -2726,12 +2737,24 @@ ${bodyParts}
 </body>
 </html>
 `;
-      zip.file(pageFileName(page), html);
-    });
+  });
 
-    const css = buildCss(allRules.join('\n'), allSpRules.join('\n'), maxPcHeight);
-    zip.file('styles.css', css);
-    zip.file('script.js', buildJs());
+  files['styles.css'] = buildCss(allRules.join('\n'), allSpRules.join('\n'), maxPcHeight);
+  files['script.js'] = buildJs();
+  return { files, images };
+}
+
+async function exportZip(){
+  const btn = $('btnExport');
+  btn.disabled = true;
+  try{
+    if(typeof JSZip === 'undefined'){
+      throw new Error('JSZipの読み込みに失敗しました。通信環境を確認してもう一度お試しください。');
+    }
+    const { files, images } = buildSiteFiles({ includeSource: true });
+    const zip = new JSZip();
+    Object.keys(files).forEach(name=>zip.file(name, files[name]));
+
     if(images.length){
       await Promise.all(images.map(async img=>{
         if(img.blob) return;
@@ -3054,6 +3077,136 @@ $('btnCloudSave').addEventListener('click', cloudSave);
 $('btnCloudOpen').addEventListener('click', openCloudList);
 $('cloudModalClose').addEventListener('click', closeCloudModal);
 $('cloudModal').addEventListener('click', (e)=>{ if(e.target === $('cloudModal')) closeCloudModal(); });
+
+// ---------------- Publish ----------------
+const publishState = { slug: null, url: null };
+
+function closePublishModal(){ $('publishModal').classList.remove('open'); }
+
+function renderPublishModal(view){
+  const body = $('publishModalBody');
+  if(view.loading){
+    body.innerHTML = `<div class="modal-empty">${escapeHtml(view.loading)}</div>`;
+    return;
+  }
+  if(view.error){
+    body.innerHTML = `<div class="modal-empty" style="color:#e77;">${escapeHtml(view.error)}</div>
+      <button class="btn full-btn" id="pubRetry">もう一度試す</button>`;
+    $('pubRetry').addEventListener('click', openPublishModal);
+    return;
+  }
+  if(view.published){
+    body.innerHTML = `
+      <div class="modal-empty" style="color:var(--text);">公開しました 🎉</div>
+      <div class="field"><label>公開URL</label>
+        <input type="text" id="pubUrl" value="${escapeHtml(view.url)}" readonly></div>
+      <div class="row-actions">
+        <button class="btn" id="pubCopy">URLをコピー</button>
+        <button class="btn" id="pubOpen">開く</button>
+      </div>
+      <hr class="sep">
+      <button class="btn full-btn" id="pubUnpublish">公開を停止する</button>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.7;">
+        更新したいときは、もう一度この公開ボタンを押すと同じURLのまま差し替わります。
+      </div>`;
+    $('pubCopy').addEventListener('click', async ()=>{
+      try{ await navigator.clipboard.writeText(view.url); flashSaveStatus('URLをコピーしました'); }
+      catch(err){ $('pubUrl').select(); }
+    });
+    $('pubOpen').addEventListener('click', ()=>window.open(view.url, '_blank', 'noopener'));
+    $('pubUnpublish').addEventListener('click', unpublishSite);
+    return;
+  }
+  const pageCount = state.pages.length;
+  body.innerHTML = `
+    <div class="field"><label>サイト名</label>
+      <input type="text" id="pubTitle" value="${escapeHtml(cloud.currentProjectName || 'マイサイト')}"></div>
+    ${publishState.slug ? `<div class="field"><label>公開URL(変更しません)</label>
+      <input type="text" value="${escapeHtml(publishState.url||'')}" readonly></div>` : ''}
+    <div class="modal-empty">${pageCount}ページを公開します。${publishState.slug ? '既存のURLを上書きします。' : '公開後にURLが発行されます。'}</div>
+    <button class="btn btn-primary full-btn" id="pubGo">${publishState.slug ? '更新して公開' : '公開する'}</button>
+    <div style="font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.7;">
+      公開ページは誰でも閲覧できます。編集用のデータは含まれません。
+    </div>`;
+  $('pubGo').addEventListener('click', ()=>doPublish($('pubTitle').value));
+}
+
+async function openPublishModal(){
+  if(!ensureLogin()) return;
+  $('publishModal').classList.add('open');
+  renderPublishModal({ loading: '公開状況を確認中…' });
+  try{
+    const res = await fetch('/api/publish', { credentials:'same-origin' });
+    if(res.status === 401){ closePublishModal(); cloud.user = null; renderAccount(); ensureLogin(); return; }
+    const j = await res.json();
+    // Match this project to an existing site so republishing keeps the URL.
+    const mine = (j.sites || []).find(sitesMatch);
+    if(mine){
+      publishState.slug = mine.slug;
+      publishState.url = new URL('/s/' + mine.slug + '/', location.origin).href;
+    }
+    renderPublishModal({});
+  }catch(err){
+    console.error(err);
+    renderPublishModal({ error: '公開状況の取得に失敗しました。' });
+  }
+}
+function sitesMatch(site){
+  if(cloud.currentProjectId && site.project_id) return site.project_id === cloud.currentProjectId;
+  return publishState.slug ? site.slug === publishState.slug : false;
+}
+
+async function doPublish(title){
+  renderPublishModal({ loading: 'ページを生成して公開中…' });
+  try{
+    const { files } = buildSiteFiles({ inlineImages: true });
+    const res = await fetch('/api/publish', {
+      method:'POST',
+      credentials:'same-origin',
+      headers:{ 'content-type':'application/json' },
+      body: JSON.stringify({
+        title: title || 'マイサイト',
+        slug: publishState.slug || undefined,
+        projectId: cloud.currentProjectId || undefined,
+        files,
+      }),
+    });
+    const j = await res.json().catch(()=>({}));
+    if(res.status === 401){ closePublishModal(); cloud.user = null; renderAccount(); ensureLogin(); return; }
+    if(!res.ok){
+      renderPublishModal({ error: j.message || ('公開に失敗しました (HTTP ' + res.status + ')') });
+      return;
+    }
+    publishState.slug = j.slug;
+    publishState.url = j.url;
+    renderPublishModal({ published:true, url:j.url });
+    flashSaveStatus('公開しました');
+  }catch(err){
+    console.error(err);
+    renderPublishModal({ error: '公開に失敗しました。通信環境を確認してください。' });
+  }
+}
+
+async function unpublishSite(){
+  if(!publishState.slug) return;
+  if(!confirm('公開を停止すると、URLにアクセスできなくなります。よろしいですか?')) return;
+  renderPublishModal({ loading: '公開を停止中…' });
+  try{
+    const res = await fetch('/api/publish/' + publishState.slug, { method:'DELETE', credentials:'same-origin' });
+    if(!res.ok && res.status !== 404) throw new Error('HTTP ' + res.status);
+    publishState.slug = null;
+    publishState.url = null;
+    renderPublishModal({});
+    flashSaveStatus('公開を停止しました');
+  }catch(err){
+    console.error(err);
+    renderPublishModal({ error: '公開の停止に失敗しました。' });
+  }
+}
+
+$('btnPublish').addEventListener('click', openPublishModal);
+$('publishModalClose').addEventListener('click', closePublishModal);
+$('publishModal').addEventListener('click', (e)=>{ if(e.target === $('publishModal')) closePublishModal(); });
 
 // ---------------- Init ----------------
 function seedDemoContent(){
