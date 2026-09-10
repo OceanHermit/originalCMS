@@ -3,1457 +3,543 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ページビルダー</title>
+<title>ブロック編集 | ページビルダー</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Shippori+Mincho:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
 <style>
 :root{
-  --bg-app:#15171c;
-  --bg-panel:#1b1e25;
-  --bg-panel-2:#20232c;
-  --border:#2b2f39;
-  --text:#f2f1ed;
-  --text-muted:#90939f;
-  --accent:#6c5ce7;
-  --accent-soft:rgba(108,92,231,.18);
-  --canvas-surround:#eae7de;
-  --mono:'JetBrains Mono',monospace;
+  --bg-app:#15171c; --bg-panel:#1b1e25; --bg-panel-2:#20232c; --border:#2b2f39;
+  --text:#f2f1ed; --text-muted:#90939f; --accent:#6c5ce7; --accent-soft:rgba(108,92,231,.18);
   --sans:'Inter','Noto Sans JP',sans-serif;
 }
 *{box-sizing:border-box;}
 html,body{height:100%;margin:0;}
 body{font-family:var(--sans);background:var(--bg-app);color:var(--text);overflow:hidden;}
-button,select,input{font-family:inherit;}
+button,select,input,textarea{font-family:inherit;}
 #app{display:flex;flex-direction:column;height:100vh;}
 
 .topbar{
   height:56px;flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;
-  padding:0 16px;background:var(--bg-panel);border-bottom:1px solid var(--border);gap:8px;
+  padding:0 14px;background:var(--bg-panel);border-bottom:1px solid var(--border);gap:8px;
 }
-.brand{font-weight:700;letter-spacing:.01em;display:flex;align-items:center;gap:8px;font-size:14px;flex:0 0 auto;}
+.brand{font-weight:700;display:flex;align-items:center;gap:8px;font-size:14px;flex:0 0 auto;}
 .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);}
-.topbar-actions{display:flex;gap:8px;align-items:center;overflow-x:auto;-webkit-overflow-scrolling:touch;}
-.topbar-actions::-webkit-scrollbar{display:none;}
+.topbar-actions{display:flex;gap:6px;align-items:center;}
 .btn{
   background:var(--bg-panel-2);color:var(--text);border:1px solid var(--border);
-  padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;transition:border-color .15s,filter .15s;
-  white-space:nowrap;flex:0 0 auto;
+  padding:8px 13px;border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap;
+  display:inline-flex;align-items:center;gap:6px;
 }
 .btn:hover{border-color:var(--accent);}
+.btn:disabled{opacity:.4;cursor:default;}
+.btn:disabled:hover{border-color:var(--border);}
 .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
 .btn-primary:hover{filter:brightness(1.1);}
-
-/* Compact icon buttons (topbar / inspector tool rows) */
+.btn svg{width:16px;height:16px;}
 .icon-btn{
   background:var(--bg-panel-2);color:var(--text);border:1px solid var(--border);
-  width:34px;height:34px;padding:0;border-radius:8px;cursor:pointer;flex:0 0 auto;
-  display:inline-flex;align-items:center;justify-content:center;transition:border-color .15s,color .15s,filter .15s;
+  width:34px;height:34px;padding:0;border-radius:8px;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;
 }
-.icon-btn svg{width:18px;height:18px;display:block;}
+.icon-btn svg{width:17px;height:17px;}
 .icon-btn:hover{border-color:var(--accent);color:var(--accent);}
-.icon-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
-.icon-btn.primary:hover{filter:brightness(1.1);color:#fff;}
 .icon-btn:disabled{opacity:.35;cursor:default;}
 .icon-btn:disabled:hover{border-color:var(--border);color:var(--text);}
-.icon-btn.toggled{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
-.tb-sep{width:1px;height:22px;background:var(--border);flex:0 0 auto;margin:0 2px;}
-.mobile-only{display:none;}
-#saveStatus{font-size:11px;color:var(--text-muted);opacity:0;transition:opacity .3s;white-space:nowrap;}
-#accountArea{display:flex;align-items:center;gap:8px;flex:0 0 auto;}
-.account{display:inline-block;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--text-muted);}
+.tb-sep{width:1px;height:22px;background:var(--border);margin:0 3px;}
+#status{font-size:11px;color:var(--text-muted);opacity:0;transition:opacity .3s;white-space:nowrap;}
+.account{font-size:12px;color:var(--text-muted);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+.workspace{flex:1;display:flex;min-height:0;}
+.rail{
+  width:250px;flex:0 0 auto;background:var(--bg-panel);border-right:1px solid var(--border);
+  overflow-y:auto;display:flex;flex-direction:column;
+}
+.inspector{
+  width:290px;flex:0 0 auto;background:var(--bg-panel);border-left:1px solid var(--border);
+  overflow-y:auto;padding:14px;
+}
+.sec{padding:14px;border-bottom:1px solid var(--border);}
+.sec h4{
+  font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);
+  margin:0 0 10px;font-weight:600;display:flex;align-items:center;justify-content:space-between;
+}
+.stage-wrap{flex:1;background:#3a3d46;display:flex;flex-direction:column;min-width:0;}
+.stage-bar{
+  height:38px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:6px;
+  background:var(--bg-panel-2);border-bottom:1px solid var(--border);
+}
+.seg{display:flex;border:1px solid var(--border);border-radius:7px;overflow:hidden;}
+.seg button{
+  background:var(--bg-panel);color:var(--text-muted);border:none;padding:5px 12px;
+  font-size:12px;cursor:pointer;border-right:1px solid var(--border);
+}
+.seg button:last-child{border-right:none;}
+.seg button.active{background:var(--accent);color:#fff;}
+#stageHost{flex:1;overflow:auto;display:flex;justify-content:center;padding:16px;}
+#stage{
+  background:#fff;border:none;box-shadow:0 10px 40px rgba(0,0,0,.4);flex:0 0 auto;
+  width:100%;max-width:1200px;height:100%;transition:max-width .2s;
+}
+#stage.w-sp{max-width:420px;}
+#stage.w-tab{max-width:820px;}
+
+/* Block list */
+#blockList{display:flex;flex-direction:column;gap:3px;}
+.blk-item{
+  display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:7px;font-size:12.5px;
+  cursor:pointer;color:var(--text-muted);border:1px solid transparent;
+}
+.blk-item:hover{background:var(--bg-panel-2);}
+.blk-item.active{background:var(--accent-soft);color:var(--text);border-color:var(--accent);}
+.blk-item.is-hidden .blk-name{opacity:.4;text-decoration:line-through;}
+.blk-item .blk-ic{flex:0 0 auto;opacity:.8;display:flex;}
+.blk-item .blk-ic svg{width:15px;height:15px;}
+.blk-item .blk-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.blk-item .blk-tog{
+  flex:0 0 auto;opacity:0;background:none;border:none;color:var(--text-muted);cursor:pointer;
+  padding:2px;border-radius:4px;display:flex;
+}
+.blk-item .blk-tog svg{width:14px;height:14px;}
+.blk-item:hover .blk-tog{opacity:.85;}
+.blk-item .blk-tog:hover{color:var(--accent);}
+.blk-item.dragging{opacity:.4;}
+.blk-item.drop-before{box-shadow:0 -2px 0 0 var(--accent);}
+.blk-item.drop-after{box-shadow:0 2px 0 0 var(--accent);}
+.blk-item .grip{opacity:.3;cursor:grab;display:flex;flex:0 0 auto;}
+.blk-item .grip svg{width:13px;height:13px;}
+.blk-item:hover .grip{opacity:.75;}
+
+#pageList{display:flex;flex-direction:column;gap:3px;}
+.pg-item{
+  display:flex;align-items:center;gap:7px;padding:8px 9px;border-radius:7px;font-size:12.5px;
+  cursor:pointer;color:var(--text-muted);border:1px solid transparent;
+}
+.pg-item:hover{background:var(--bg-panel-2);}
+.pg-item.active{background:var(--accent-soft);color:var(--text);border-color:var(--accent);}
+.pg-item .pg-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pg-item .pg-file{font-size:10px;opacity:.6;flex:0 0 auto;}
+.pg-item .blk-tog{opacity:0;}
+.pg-item:hover .blk-tog{opacity:.85;}
+#colorList{display:flex;flex-wrap:wrap;gap:6px;}
+.sw{
+  width:30px;height:30px;border-radius:6px;border:1px solid rgba(255,255,255,.2);
+  cursor:pointer;padding:0;position:relative;
+}
+.sw:hover{outline:2px solid var(--accent);outline-offset:1px;}
+.sw span{
+  position:absolute;bottom:-2px;right:-2px;font-size:8px;background:var(--bg-panel);
+  border-radius:3px;padding:0 2px;color:var(--text-muted);
+}
+.empty{color:var(--text-muted);font-size:12.5px;line-height:1.9;text-align:center;padding:26px 14px;}
+.field{margin-bottom:13px;}
+.field label{display:block;font-size:10.5px;color:var(--text-muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em;}
+.field input[type=text],.field textarea,.field select{
+  width:100%;background:var(--bg-panel-2);border:1px solid var(--border);color:var(--text);
+  padding:7px 9px;border-radius:6px;font-size:12.5px;
+}
+.field textarea{min-height:64px;resize:vertical;line-height:1.6;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+hr.sep{border:none;border-top:1px solid var(--border);margin:14px 0;}
+.hint{font-size:11.5px;color:var(--text-muted);line-height:1.8;}
+.asset{
+  display:flex;gap:9px;align-items:center;padding:8px;border:1px solid var(--border);
+  border-radius:8px;margin-bottom:7px;background:var(--bg-panel-2);
+}
+.asset img{width:46px;height:46px;object-fit:cover;border-radius:5px;flex:0 0 auto;background:#333;}
+.asset .a-body{flex:1 1 auto;min-width:0;}
+.asset .a-name{font-size:11px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.asset button{
+  background:var(--bg-panel);border:1px solid var(--border);color:var(--text);
+  border-radius:6px;padding:5px 9px;font-size:11.5px;cursor:pointer;margin-top:5px;
+}
+.asset button:hover{border-color:var(--accent);color:var(--accent);}
+.badge{
+  font-size:9.5px;padding:1px 5px;border-radius:4px;background:var(--accent-soft);
+  color:var(--accent);flex:0 0 auto;
+}
 
 .modal-overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;
+  position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;
   align-items:center;justify-content:center;z-index:1000;padding:16px;
 }
 .modal-overlay.open{display:flex;}
 .modal{
   background:var(--bg-panel);border:1px solid var(--border);border-radius:14px;
-  width:100%;max-width:440px;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;
+  width:100%;max-width:560px;max-height:84vh;overflow:hidden;display:flex;flex-direction:column;
   box-shadow:0 20px 60px rgba(0,0,0,.5);
 }
 .modal-head{padding:15px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
 .modal-head h3{margin:0;font-size:15px;font-weight:600;}
-.modal-close{background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;}
-.modal-close:hover{color:var(--text);}
-.modal-body{padding:14px 18px;overflow-y:auto;}
-.proj-item{
-  display:flex;align-items:center;justify-content:space-between;gap:8px;
-  padding:11px 12px;border:1px solid var(--border);border-radius:9px;margin-bottom:8px;cursor:pointer;
+.modal-close{background:none;border:none;color:var(--text-muted);font-size:21px;cursor:pointer;line-height:1;}
+.modal-body{padding:16px 18px;overflow-y:auto;}
+.drop-zone{
+  border:2px dashed var(--border);border-radius:10px;padding:26px 16px;text-align:center;
+  color:var(--text-muted);font-size:12.5px;cursor:pointer;line-height:1.9;
 }
-.proj-item:hover{border-color:var(--accent);}
-.proj-item .pname{font-size:13.5px;color:var(--text);}
-.proj-item .pmeta{font-size:11px;color:var(--text-muted);margin-top:3px;}
-.proj-del{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:15px;padding:4px 6px;border-radius:6px;flex:0 0 auto;}
-.proj-del:hover{color:#e77;}
-.modal-empty{color:var(--text-muted);font-size:13px;padding:8px 0;line-height:1.7;}
-
-.workspace{flex:1;display:flex;min-height:0;position:relative;}
-
-.rail{
-  width:216px;flex:0 0 auto;background:var(--bg-panel);border-right:1px solid var(--border);
-  padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:22px;
-}
-.rail-section h4{
-  font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin:0 0 10px;font-weight:600;
-}
-.add-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
-.add-btn{
-  display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 1px;
-  background:var(--bg-panel-2);border:1px solid var(--border);border-radius:8px;color:var(--text);
-  cursor:pointer;font-size:9px;line-height:1.2;white-space:nowrap;letter-spacing:-.02em;
-}
-.add-btn:hover{border-color:var(--accent);color:var(--accent);}
-.add-btn svg{width:18px;height:18px;display:block;}
-.full-btn{width:100%;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px;}
-.full-btn svg{width:16px;height:16px;}
-#layerList{display:flex;flex-direction:column;gap:4px;}
-.layer-item{
-  display:flex;align-items:center;gap:7px;padding:7px 8px;border-radius:7px;font-size:12.5px;
-  cursor:pointer;color:var(--text-muted);border:1px solid transparent;
-}
-.layer-item:hover{background:var(--bg-panel-2);}
-.layer-item.active{background:var(--accent-soft);color:var(--text);border-color:var(--accent);}
-.layer-item .lic{opacity:.75;width:16px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
-.layer-item .lic svg{width:14px;height:14px;display:block;}
-.layer-item .lname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.layer-item .grip{
-  margin-left:auto;flex:0 0 auto;opacity:.35;cursor:grab;display:flex;align-items:center;
-}
-.layer-item .grip svg{width:13px;height:13px;display:block;}
-.layer-item:hover .grip{opacity:.8;}
-.layer-item.dragging{opacity:.4;}
-.layer-item.drop-before{box-shadow:0 -2px 0 0 var(--accent);}
-.layer-item.drop-after{box-shadow:0 2px 0 0 var(--accent);}
-.hint{font-size:11.5px;color:var(--text-muted);line-height:1.8;}
-
-.canvas-area{
-  flex:1;overflow:auto;background:var(--canvas-surround);
-  background-image:radial-gradient(circle,#cfcabb 1px,transparent 1px);
-  background-size:22px 22px;display:flex;justify-content:center;align-items:flex-start;padding:56px 24px 120px;
-}
-.page-scaler{flex:0 0 auto;position:relative;}
-.page{position:relative;background:#fff;box-shadow:0 14px 44px rgba(0,0,0,.28);transform-origin:top left;}
-.zoom-bar{
-  position:fixed;right:270px;bottom:18px;z-index:300;display:flex;align-items:center;gap:2px;
-  background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:4px;
-  box-shadow:0 6px 20px rgba(0,0,0,.3);
-}
-.zoom-bar button{
-  background:none;border:none;color:var(--text);cursor:pointer;font-size:14px;
-  padding:6px 10px;border-radius:7px;min-width:34px;
-}
-.zoom-bar button:hover{background:var(--bg-panel-2);}
-.zoom-bar .zoom-num{min-width:52px;font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums;}
-.zoom-bar .zoom-fit{font-size:12px;border-left:1px solid var(--border);}
-@media (max-width:880px){ .zoom-bar{right:12px;bottom:12px;} }
-.align-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
-.dist-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
-.order-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
-.align-grid button,.dist-grid button,.order-grid button{
-  background:var(--bg-panel-2);border:1px solid var(--border);color:var(--text);
-  padding:7px 0;border-radius:6px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-}
-.align-grid button svg,.dist-grid button svg,.order-grid button svg{width:20px;height:20px;display:block;}
-.align-grid button:hover,.dist-grid button:hover,.order-grid button:hover{border-color:var(--accent);color:var(--accent);}
-.align-grid button:disabled,.dist-grid button:disabled{opacity:.35;cursor:default;}
-.align-grid button:disabled:hover,.dist-grid button:disabled:hover{border-color:var(--border);color:var(--text);}
-.multi-head{font-size:13px;color:var(--text);margin-bottom:12px;font-weight:600;}
-.marquee{
-  position:absolute;border:1px solid var(--accent);background:var(--accent-soft);
-  z-index:400;pointer-events:none;
-}
-.page.multi-select .handle{display:none;}
-.guide-layer{position:absolute;inset:0;pointer-events:none;z-index:9998;}
-.guide{position:absolute;background:#ff3b8d;}
-.guide-v{top:0;width:1px;height:100%;}
-.guide-h{left:0;height:1px;width:100%;}
-.layer-item .ltog{
-  flex:0 0 auto;opacity:0;cursor:pointer;color:var(--text-muted);
-  display:flex;align-items:center;padding:2px;border-radius:4px;background:none;border:none;
-}
-.layer-item .ltog svg{width:13px;height:13px;display:block;}
-.layer-item:hover .ltog,.layer-item .ltog.on{opacity:.9;}
-.layer-item .ltog:hover{color:var(--accent);}
-.layer-item.is-hidden .lname,.layer-item.is-locked .lname{opacity:.45;}
-.layer-item .lname{flex:1 1 auto;min-width:0;}
-.layer-item .grip{margin-left:0;}
-#pageList{display:flex;flex-direction:column;gap:3px;margin-bottom:8px;}
-.page-item{
-  display:flex;align-items:center;gap:6px;padding:7px 8px;border-radius:7px;font-size:12.5px;
-  cursor:pointer;color:var(--text-muted);border:1px solid transparent;
-}
-.page-item:hover{background:var(--bg-panel-2);}
-.page-item.active{background:var(--accent-soft);color:var(--text);border-color:var(--accent);}
-.page-item.child{margin-left:14px;font-size:12px;}
-.page-item.child::before{content:'└';opacity:.4;margin-right:-2px;}
-.page-item .pgname{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.page-item .ltog{opacity:0;}
-.page-item:hover .ltog{opacity:.85;}
-.device-seg{display:flex;border:1px solid var(--border);border-radius:7px;overflow:hidden;}
-.device-seg button{
-  flex:1;background:var(--bg-panel-2);color:var(--text-muted);border:none;cursor:pointer;
-  padding:7px 0;display:flex;align-items:center;justify-content:center;gap:5px;font-size:11.5px;
-  border-right:1px solid var(--border);
-}
-.device-seg button:last-child{border-right:none;}
-.device-seg button svg{width:15px;height:15px;}
-.device-seg button.active{background:var(--accent);color:#fff;}
-.field textarea{
-  width:100%;background:var(--bg-panel-2);border:1px solid var(--border);color:var(--text);
-  padding:7px 9px;border-radius:6px;font-size:12.5px;resize:vertical;min-height:60px;font-family:inherit;
-}
-.color-tools{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;align-items:center;}
-.mini-btn{
-  width:22px;height:22px;padding:0;border-radius:5px;cursor:pointer;flex:0 0 auto;
-  background:var(--bg-panel-2);border:1px solid var(--border);color:var(--text-muted);
-  display:inline-flex;align-items:center;justify-content:center;
-}
-.mini-btn svg{width:13px;height:13px;display:block;}
-.mini-btn:hover{border-color:var(--accent);color:var(--accent);}
-.swatch{
-  width:18px;height:18px;border-radius:4px;border:1px solid rgba(255,255,255,.18);
-  cursor:pointer;padding:0;flex:0 0 auto;
-}
-.swatch:hover{outline:2px solid var(--accent);outline-offset:1px;}
-.badge-group{
-  font-size:9px;padding:1px 4px;border-radius:4px;background:var(--accent-soft);
-  color:var(--accent);flex:0 0 auto;
-}
-.resize-h{
-  position:absolute;left:0;bottom:-15px;width:100%;height:15px;cursor:ns-resize;
-  display:flex;align-items:center;justify-content:center;z-index:9999;
-}
-.resize-h::after{content:'';width:44px;height:5px;border-radius:3px;background:#c7c2b2;}
-
-.el{position:absolute;user-select:none;-webkit-user-select:none;cursor:move;}
-.el.selected{outline:2px solid var(--accent);outline-offset:2px;}
-.handle{
-  position:absolute;width:13px;height:13px;background:#fff;border:2px solid var(--accent);
-  border-radius:3px;z-index:10;display:none;
-}
-.el.selected .handle{display:block;}
-.handle.nw{left:-7px;top:-7px;cursor:nwse-resize;}
-.handle.n{left:50%;top:-7px;transform:translateX(-50%);cursor:ns-resize;}
-.handle.ne{right:-7px;top:-7px;cursor:nesw-resize;}
-.handle.e{right:-7px;top:50%;transform:translateY(-50%);cursor:ew-resize;}
-.handle.se{right:-7px;bottom:-7px;cursor:nwse-resize;}
-.handle.s{left:50%;bottom:-7px;transform:translateX(-50%);cursor:ns-resize;}
-.handle.sw{left:-7px;bottom:-7px;cursor:nesw-resize;}
-.handle.w{left:-7px;top:50%;transform:translateY(-50%);cursor:ew-resize;}
-.el-text{outline:none;line-height:1.4;overflow:hidden;padding:2px;}
-.embed-ph{
-  width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
-  background:repeating-linear-gradient(45deg,#eef0f5,#eef0f5 10px,#e6e9f0 10px,#e6e9f0 20px);
-  border:1px dashed #9aa1b1;color:#5b6172;font-size:12px;text-align:center;padding:8px;
-}
-.embed-ph .embed-ic svg{width:26px;height:26px;}
-.embed-ph .embed-note{font-size:10.5px;opacity:.75;}
-.el-text.vertical{writing-mode:vertical-rl;text-orientation:mixed;}
-.el-image img{width:100%;height:100%;display:block;pointer-events:none;}
-.el-vector svg{display:block;pointer-events:none;}
-
-.inspector{
-  width:252px;flex:0 0 auto;background:var(--bg-panel);border-left:1px solid var(--border);
-  padding:16px;overflow-y:auto;
-}
-.empty-state{color:var(--text-muted);font-size:12.5px;text-align:center;margin-top:40px;line-height:1.8;}
-.field{margin-bottom:14px;}
-.field label{display:block;font-size:10.5px;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;}
-.field input[type=text],.field select{
-  width:100%;background:var(--bg-panel-2);border:1px solid var(--border);color:var(--text);
-  padding:7px 9px;border-radius:6px;font-size:13px;
-}
-.field input[type=color]{width:100%;height:32px;border:1px solid var(--border);border-radius:6px;background:var(--bg-panel-2);padding:2px;cursor:pointer;}
-.field input[type=range]{width:100%;accent-color:var(--accent);}
-.xywh{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.xywh label{font-family:var(--mono);font-size:10px;color:var(--text-muted);display:block;margin-bottom:3px;}
-.xywh input{
-  width:100%;background:var(--bg-panel-2);border:1px solid var(--border);color:var(--text);
-  padding:6px 7px;border-radius:6px;font-family:var(--mono);font-size:12px;
-}
-.seg{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;}
-.seg button{flex:1;background:var(--bg-panel-2);color:var(--text-muted);border:none;padding:7px 0;font-size:13px;cursor:pointer;border-right:1px solid var(--border);}
-.seg button:last-child{border-right:none;}
-.seg button.active{background:var(--accent);color:#fff;}
-.row-actions{display:flex;gap:8px;margin-top:6px;}
-.row-actions button{flex:1;}
-hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0;}
-
-#penHint{
-  display:none;position:fixed;top:66px;left:50%;transform:translateX(-50%);
-  background:var(--bg-panel);color:var(--text);padding:7px 16px;border-radius:20px;
-  font-size:12px;border:1px solid var(--accent);z-index:600;box-shadow:0 4px 16px rgba(0,0,0,.3);
-  white-space:nowrap;
-}
-
-@keyframes kfFadeIn{from{opacity:0;}to{opacity:1;}}
-@keyframes kfSlideUp{from{opacity:0;transform:translateY(40px);}to{opacity:1;transform:translateY(0);}}
-@keyframes kfSlideDown{from{opacity:0;transform:translateY(-40px);}to{opacity:1;transform:translateY(0);}}
-@keyframes kfSlideLeft{from{opacity:0;transform:translateX(40px);}to{opacity:1;transform:translateX(0);}}
-@keyframes kfSlideRight{from{opacity:0;transform:translateX(-40px);}to{opacity:1;transform:translateX(0);}}
-@keyframes kfZoomIn{from{opacity:0;transform:scale(.85);}to{opacity:1;transform:scale(1);}}
-
-@media (max-width: 880px){
-  .rail,.inspector{
-    position:fixed;top:56px;bottom:0;width:82%;max-width:300px;z-index:200;
-    transform:translateX(-110%);transition:transform .2s ease;box-shadow:0 0 30px rgba(0,0,0,.4);
-  }
-  .inspector{right:0;left:auto;transform:translateX(110%);}
-  .rail.open{transform:translateX(0);}
-  .inspector.open{transform:translateX(0);}
-  .mobile-only{display:inline-block;}
-  .brand span.full{display:none;}
-  .topbar-actions{max-width:62vw;}
+.drop-zone:hover,.drop-zone.over{border-color:var(--accent);color:var(--text);}
+@media (max-width:960px){
+  .rail{width:200px;} .inspector{width:230px;}
 }
 </style>
 </head>
 <body>
 <div id="app">
   <header class="topbar">
-    <div class="brand"><span class="dot"></span><span class="full">ページビルダー</span></div>
+    <div class="brand"><span class="dot"></span><span>ブロック編集</span></div>
     <div class="topbar-actions">
-      <button class="icon-btn mobile-only" id="btnToggleRail" data-icon="menu" title="ツールパネル" aria-label="ツールパネル"></button>
-      <a class="btn" href="./blocks.html" title="AIが作ったHTMLをブロック単位で編集する">ブロック編集</a>
-      <button class="icon-btn" id="btnImport" data-icon="folderOpen" title="ZIPを読み込む" aria-label="ZIPを読み込む"></button>
-      <button class="icon-btn" id="btnSaveTemp" data-icon="floppy" title="一時保存(このブラウザ)" aria-label="一時保存"></button>
+      <button class="btn" id="btnImport">読み込む</button>
       <span class="tb-sep"></span>
-      <button class="icon-btn" id="btnUndo" data-icon="undo" title="元に戻す (Ctrl+Z)" aria-label="元に戻す"></button>
-      <button class="icon-btn" id="btnRedo" data-icon="redo" title="やり直す (Ctrl+Shift+Z)" aria-label="やり直す"></button>
-      <button class="icon-btn" id="btnSnap" data-icon="magnet" title="スマートガイド(スナップ)の切り替え" aria-label="スナップ"></button>
+      <button class="icon-btn" id="btnUndo" title="元に戻す (Ctrl+Z)"></button>
+      <button class="icon-btn" id="btnRedo" title="やり直す (Ctrl+Shift+Z)"></button>
       <span class="tb-sep"></span>
-      <button class="icon-btn" id="btnCloudOpen" data-icon="cloudDown" title="クラウドを開く" aria-label="クラウドを開く"></button>
-      <button class="icon-btn" id="btnCloudSave" data-icon="cloudUp" title="クラウドに保存" aria-label="クラウドに保存"></button>
-      <span id="saveStatus"></span>
+      <span id="status"></span>
+      <button class="btn" id="btnExport">ZIPで保存</button>
+      <button class="btn btn-primary" id="btnPublish">公開する</button>
       <span class="tb-sep"></span>
-      <button class="icon-btn" id="btnPreview" data-icon="play" title="アニメーションを再生" aria-label="再生"></button>
-      <button class="icon-btn" id="btnExport" data-icon="download" title="ZIPで書き出す" aria-label="ZIPで書き出す"></button>
-      <button class="icon-btn primary" id="btnPublish" data-icon="rocket" title="Webに公開する" aria-label="Webに公開する"></button>
+      <a class="btn" href="./canvas.html" title="素材づくり用のキャンバスエディタへ">キャンバス</a>
       <span id="accountArea"></span>
-      <button class="icon-btn mobile-only" id="btnToggleInspector" data-icon="sliders" title="プロパティ" aria-label="プロパティ"></button>
     </div>
   </header>
+
   <div class="workspace">
-    <aside class="rail" id="rail">
-      <div class="rail-section">
-        <h4>表示デバイス</h4>
-        <div class="device-seg">
-          <button data-device="pc" class="active" data-icon="monitor">PC</button>
-          <button data-device="sp" data-icon="phone">スマホ</button>
-        </div>
-      </div>
-      <div class="rail-section">
-        <h4>ページ</h4>
+    <aside class="rail">
+      <div class="sec">
+        <h4>ページ <span id="pageCount" class="badge">0</span></h4>
         <div id="pageList"></div>
-        <button class="btn full-btn" id="btnAddPage" data-icon="plus" style="margin-top:0;">ページを追加</button>
-        <button class="btn full-btn" id="btnPageSettings" data-icon="globe">ページ設定 / SEO</button>
-      </div>
-      <div class="rail-section">
-        <h4>要素を追加</h4>
-        <div class="add-grid">
-          <button class="add-btn" data-add="text" data-icon="text" title="テキスト">テキスト</button>
-          <button class="add-btn" data-add="rect" data-icon="rect" title="四角形">四角形</button>
-          <button class="add-btn" data-add="ellipse" data-icon="ellipse" title="円">円</button>
-          <button class="add-btn" data-add="image" data-icon="image" title="画像">画像</button>
-          <button class="add-btn" data-add="embed" data-icon="code" title="埋め込みコード(YouTube・地図など)">埋込</button>
+        <div class="row2" style="margin-top:8px;">
+          <button class="btn" id="btnAddPage" style="justify-content:center;">＋ 新規</button>
+          <button class="btn" id="btnDupPage" style="justify-content:center;">このページを複製</button>
         </div>
-        <input type="file" id="imageInput" accept="image/*" hidden>
       </div>
-      <div class="rail-section">
-        <h4>ベクター図形</h4>
-        <div class="add-grid">
-          <button class="add-btn" data-vec="triangle" data-icon="triangle" title="三角形">三角形</button>
-          <button class="add-btn" data-vec="star" data-icon="star" title="星">星</button>
-          <button class="add-btn" data-vec="pentagon" data-icon="pentagon" title="五角形">五角形</button>
-          <button class="add-btn" data-vec="hexagon" data-icon="hexagon" title="六角形">六角形</button>
-          <button class="add-btn" data-vec="arrow" data-icon="arrowShape" title="矢印">矢印</button>
-          <button class="add-btn" data-vec="line" data-icon="line" title="直線">直線</button>
-        </div>
-        <button class="btn full-btn" id="btnPenTool" data-icon="pen">ペンツールで描く</button>
+      <div class="sec">
+        <h4>ブロック <span id="blockCount" class="badge">0</span></h4>
+        <div id="blockList"></div>
       </div>
-      <div class="rail-section">
-        <h4>レイヤー</h4>
-        <div id="layerList"></div>
+      <div class="sec">
+        <h4>ページ情報</h4>
+        <div class="field"><label>ページタイトル</label><input type="text" id="docTitle" placeholder="サイトのタイトル"></div>
+        <div class="field" style="margin-bottom:0;"><label>説明文 (SEO)</label><textarea id="docDesc" placeholder="検索結果に出る説明"></textarea></div>
       </div>
-      <div class="rail-section">
-        <h4>キャンバス背景</h4>
-        <div class="field" style="margin-bottom:0;"><input type="color" id="canvasBg" value="#ffffff"></div>
+      <div class="sec">
+        <h4>サイトの色</h4>
+        <div id="colorList"></div>
+        <div class="hint" style="margin-top:8px;">色をクリックすると、その色をサイト全体で一括変更します。</div>
       </div>
-      <div class="rail-section hint">
-        <div>💡 ダブルクリックでテキスト編集</div>
-        <div>💡 Shift+クリックで複数選択・空白ドラッグで範囲選択</div>
-        <div>💡 レイヤーはドラッグで重ね順を変更</div>
-        <div>💡 矢印キーで移動(Shiftで10px)</div>
-        <div>💡 ペンツール:クリックで頂点追加、Enter/ダブルクリックで確定</div>
-        <div>💡 キャンバス下端をドラッグで高さ調整</div>
+      <div class="sec hint">
+        <div>💡 プレビュー上の文字を直接クリックして書き換えられます</div>
+        <div>💡 画像をクリックすると差し替えできます</div>
+        <div>💡 ブロックはドラッグで並べ替えできます</div>
+        <div>💡 投稿を増やすときは「このページを複製」</div>
       </div>
     </aside>
-    <main class="canvas-area" id="canvasArea">
-      <div class="page-scaler" id="pageScaler">
-        <div class="page" id="pageCanvas">
-          <div class="resize-h" id="resizeH"></div>
+
+    <main class="stage-wrap">
+      <div class="stage-bar">
+        <div class="seg">
+          <button data-w="pc" class="active">PC</button>
+          <button data-w="tab">タブレット</button>
+          <button data-w="sp">スマホ</button>
         </div>
+      </div>
+      <div id="stageHost">
+        <iframe id="stage" sandbox="allow-same-origin"></iframe>
       </div>
     </main>
-    <div class="zoom-bar" id="zoomBar">
-      <button id="zoomOut" title="縮小">−</button>
-      <button class="zoom-num" id="zoomLabel" title="100%に戻す">100%</button>
-      <button id="zoomIn" title="拡大">＋</button>
-      <button class="zoom-fit" id="zoomFit" title="ページ全体を画面に合わせる">画面に合わせる</button>
-    </div>
-    <aside class="inspector" id="inspector">
-      <div class="empty-state">要素をクリックして選択してください。<br>ドラッグで移動、右下の■で拡大縮小できます。</div>
-    </aside>
+
+    <aside class="inspector" id="inspector"></aside>
   </div>
 </div>
-<div id="penHint">クリックで頂点を追加・Enter/ダブルクリックで確定・Escでキャンセル・Backspaceで1点戻る</div>
-<input type="file" id="zipInput" accept=".zip" hidden>
+
+<input type="file" id="fileInput" accept=".html,.htm,.zip" hidden>
+<input type="file" id="imgInput" accept="image/*" hidden>
+
+<div class="modal-overlay" id="importModal">
+  <div class="modal">
+    <div class="modal-head"><h3>サイトを読み込む</h3><button class="modal-close" id="importClose">×</button></div>
+    <div class="modal-body">
+      <div class="drop-zone" id="dropZone">
+        <strong>HTMLファイル / ZIPファイル</strong>をここにドロップ<br>
+        またはクリックして選択<br>
+        <span style="font-size:11px;">ZIP(HTML + CSS + 画像)だと見た目が完全に再現されます</span>
+      </div>
+      <hr class="sep">
+      <div class="field">
+        <label>HTMLを直接貼り付ける</label>
+        <textarea id="pasteArea" style="min-height:150px;font-family:monospace;font-size:11.5px;" placeholder="&lt;!DOCTYPE html&gt; ... AIが生成したHTMLをここに貼り付け"></textarea>
+      </div>
+      <button class="btn btn-primary" id="btnPasteGo" style="width:100%;justify-content:center;">この内容で読み込む</button>
+    </div>
+  </div>
+</div>
 
 <div class="modal-overlay" id="publishModal">
   <div class="modal">
-    <div class="modal-head">
-      <h3>Webに公開</h3>
-      <button class="modal-close" id="publishModalClose">×</button>
-    </div>
-    <div class="modal-body" id="publishModalBody"></div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="pageModal">
-  <div class="modal">
-    <div class="modal-head">
-      <h3>ページ設定 / SEO</h3>
-      <button class="modal-close" id="pageModalClose">×</button>
-    </div>
-    <div class="modal-body" id="pageModalBody"></div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="cloudModal">
-  <div class="modal">
-    <div class="modal-head">
-      <h3>クラウドのプロジェクト</h3>
-      <button class="modal-close" id="cloudModalClose">×</button>
-    </div>
-    <div class="modal-body" id="cloudModalBody"></div>
+    <div class="modal-head"><h3>公開</h3><button class="modal-close" id="publishClose">×</button></div>
+    <div class="modal-body" id="publishBody"></div>
   </div>
 </div>
 
 <script>
-// ---------------- State ----------------
-const state = {
-  els: [],
-  selectedId: null,
-  selectedIds: [],
-  idCounter: 1,
-  canvasWidth: 1200,
-  canvasHeight: 1600,
-  canvasBg: '#ffffff',
-  drawingMode: false,
-  tempPoints: [],
-  zoom: 1,
-  autoFit: true,
-  snap: true,
-  pages: [],
-  currentPageId: null,
-  device: 'pc',
-  desktopWidth: 1200,
-  mobileWidth: 480,
-  site: { nav: { enabled:true, bg:'#ffffff', color:'#1a1a1a', accent:'#6c5ce7', height:64 } },
-  swatches: ['#6c5ce7','#00b894','#f2994a','#eb5757','#1a1a1a','#ffffff'],
-};
+// ============================================================
+// Block editor: edits AI-generated HTML in place.
+//
+// The document being edited lives as a real DOM in a sandboxed same-origin
+// iframe. Sandboxing without allow-scripts means the site's own scripts never
+// run while editing (so they cannot fight the editor), yet the parent can
+// still reach contentDocument directly - no postMessage plumbing needed.
+// ============================================================
 
-const FONTS = [
-  {label:'Noto Sans JP', value:"'Noto Sans JP', sans-serif"},
-  {label:'Inter', value:"'Inter', sans-serif"},
-  {label:'Zen Kaku Gothic New', value:"'Zen Kaku Gothic New', sans-serif"},
-  {label:'Shippori Mincho', value:"'Shippori Mincho', serif"},
-  {label:'Playfair Display', value:"'Playfair Display', serif"},
-];
-
-const ANIMS = [
-  {label:'なし', value:'none'},
-  {label:'フェードイン', value:'fade-in'},
-  {label:'下からスライド', value:'slide-up'},
-  {label:'上からスライド', value:'slide-down'},
-  {label:'左からスライド', value:'slide-left'},
-  {label:'右からスライド', value:'slide-right'},
-  {label:'ズームイン', value:'zoom-in'},
-];
-
-// ---------------- Icons ----------------
-// Stroke icons share one wrapper; align/order icons are filled bars drawn in
-// the style of Illustrator's align palette.
-function svgS(body){
-  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
-}
-function svgF(body){
-  return `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${body}</svg>`;
-}
-// Align icon: a reference rule plus two bars snapped to it.
-function alignIcon(kind){
-  const rule = (d)=>`<path d="${d}" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".55" fill="none"/>`;
-  const bar = (x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="1"/>`;
-  let inner;
-  if(kind==='left')         inner = rule('M3 3.5v17') + bar(4,6,15,4.5) + bar(4,13.5,10,4.5);
-  else if(kind==='hcenter') inner = rule('M12 3.5v17') + bar(4.5,6,15,4.5) + bar(7,13.5,10,4.5);
-  else if(kind==='right')   inner = rule('M21 3.5v17') + bar(5,6,15,4.5) + bar(10,13.5,10,4.5);
-  else if(kind==='top')     inner = rule('M3.5 3h17') + bar(6,4,4.5,15) + bar(13.5,4,4.5,10);
-  else if(kind==='vmiddle') inner = rule('M3.5 12h17') + bar(6,4.5,4.5,15) + bar(13.5,7,4.5,10);
-  else                      inner = rule('M3.5 21h17') + bar(6,5,4.5,15) + bar(13.5,10,4.5,10);
-  return `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${inner}</svg>`;
-}
-// Distribute icon: three bars with equal gaps.
-function distIcon(axis){
-  const bar = (x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="1"/>`;
-  const inner = axis==='h'
-    ? bar(3,4,4,16) + bar(10,4,4,16) + bar(17,4,4,16)
-    : bar(4,3,16,4) + bar(4,10,16,4) + bar(4,17,16,4);
-  return `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${inner}</svg>`;
-}
-// Order icon: a stacked plane plus one or two chevrons pointing away from it.
-function orderIcon(kind){
-  const up = kind==='front' || kind==='forward';
-  const plane = up
-    ? `<rect x="5" y="14.5" width="14" height="6" rx="1.5" fill="currentColor" opacity=".4"/>`
-    : `<rect x="5" y="3.5" width="14" height="6" rx="1.5" fill="currentColor" opacity=".4"/>`;
-  const ch = (d)=>`<path d="${d}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;
-  let arrows;
-  if(kind==='forward')       arrows = ch('m7.5 10 4.5-4.5L16.5 10');
-  else if(kind==='front')    arrows = ch('m7.5 11.5 4.5-4.5 4.5 4.5') + ch('m7.5 6.5 4.5-4.5 4.5 4.5');
-  else if(kind==='backward') arrows = ch('m7.5 14 4.5 4.5 4.5-4.5');
-  else                       arrows = ch('m7.5 12.5 4.5 4.5 4.5-4.5') + ch('m7.5 17.5 4.5 4.5 4.5-4.5');
-  return `<svg viewBox="0 0 24 24" aria-hidden="true">${plane}${arrows}</svg>`;
-}
-
+const $ = (id)=>document.getElementById(id);
+const svg = (b)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${b}</svg>`;
 const ICONS = {
-  // topbar
-  menu:       svgS('<path d="M4 7h16M4 12h16M4 17h16"/>'),
-  folderOpen: svgS('<path d="M3 18V6.5A1.5 1.5 0 0 1 4.5 5h4L11 7.5h8.5A1.5 1.5 0 0 1 21 9v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z"/>'),
-  floppy:     svgS('<path d="M5.5 4h10L20 8.5V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1.5-1Z"/><path d="M8 4v5h7V4.5"/><path d="M7.5 20v-5.5h9V20"/>'),
-  cloudDown:  svgS('<path d="M19.5 16.5A4 4 0 0 0 18 9h-1.3A7 7 0 1 0 5 15.4"/><path d="M12 12v8"/><path d="m8.5 16.5 3.5 3.5 3.5-3.5"/>'),
-  cloudUp:    svgS('<path d="M19.5 16.5A4 4 0 0 0 18 9h-1.3A7 7 0 1 0 5 15.4"/><path d="M12 20v-8"/><path d="m8.5 15.5 3.5-3.5 3.5 3.5"/>'),
-  play:       svgF('<path d="M7 4.5v15a1 1 0 0 0 1.5.87l12-7.5a1 1 0 0 0 0-1.74l-12-7.5A1 1 0 0 0 7 4.5Z"/>'),
-  download:   svgS('<path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/>'),
-  sliders:    svgS('<path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h9M17 17h3"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="15" cy="17" r="2"/>'),
-  // shapes / tools
-  text:       svgS('<path d="M5 6.5V5h14v1.5"/><path d="M12 5v14"/><path d="M9 19h6"/>'),
-  rect:       svgS('<rect x="3.5" y="6" width="17" height="12" rx="1.5"/>'),
-  ellipse:    svgS('<circle cx="12" cy="12" r="7.75"/>'),
-  image:      svgS('<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="m20.5 16.5-4.8-5-6.2 7.4"/>'),
-  triangle:   svgS('<path d="M12 4.5 20.5 19.5h-17L12 4.5Z"/>'),
-  star:       svgS('<path d="m12 3.5 2.6 5.55 5.9.78-4.3 4.15 1.08 5.92L12 17.05 6.72 19.9l1.08-5.92L3.5 9.83l5.9-.78L12 3.5Z"/>'),
-  pentagon:   svgS('<path d="m12 3.5 8.5 6.2-3.25 10.05H6.75L3.5 9.7 12 3.5Z"/>'),
-  hexagon:    svgS('<path d="m12 3 7.8 4.5v9L12 21l-7.8-4.5v-9L12 3Z"/>'),
-  arrowShape: svgS('<path d="M3 9.5h9.5V5.5L21 12l-8.5 6.5v-4H3v-5Z"/>'),
-  line:       svgS('<path d="M4.5 19.5 19.5 4.5"/>'),
-  pen:        svgS('<path d="m12 3 7.5 15L12 14.6 4.5 18 12 3Z"/><path d="M12 14.6V21"/>'),
-  vector:     svgS('<path d="m12 4 7 14-7-3.2L5 18 12 4Z"/>'),
-  grip:       svgF('<circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/>'),
-  eye:        svgS('<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="2.6"/>'),
-  eyeOff:     svgS('<path d="M4 4.5 19.5 20"/><path d="M9.5 6.2A9.6 9.6 0 0 1 12 5.9c6.4 0 10 6.1 10 6.1a17 17 0 0 1-3.3 3.9"/><path d="M6.4 8.1A16.7 16.7 0 0 0 2 12s3.6 6.1 10 6.1a10 10 0 0 0 3.5-.6"/><path d="M9.8 10a2.6 2.6 0 0 0 3.6 3.6"/>'),
-  lock:       svgS('<rect x="5" y="10.5" width="14" height="9.5" rx="1.6"/><path d="M8 10.5V7.8a4 4 0 0 1 8 0v2.7"/>'),
-  unlock:     svgS('<rect x="5" y="10.5" width="14" height="9.5" rx="1.6"/><path d="M8 10.5V7.8a4 4 0 0 1 7.7-1.4"/>'),
-  undo:       svgS('<path d="M4 8h9.5a5.5 5.5 0 1 1 0 11H7"/><path d="M8 4 4 8l4 4"/>'),
-  redo:       svgS('<path d="M20 8h-9.5a5.5 5.5 0 1 0 0 11H17"/><path d="m16 4 4 4-4 4"/>'),
-  magnet:     svgS('<path d="M6 4v7a6 6 0 0 0 12 0V4"/><path d="M6 9h4M14 9h4"/>'),
-  code:       svgS('<path d="m8.5 8-4.5 4 4.5 4"/><path d="m15.5 8 4.5 4-4.5 4"/><path d="m13.5 5-3 14"/>'),
-  plus:       svgS('<path d="M12 5v14M5 12h14"/>'),
-  pencil:     svgS('<path d="M4 20h4l10-10a2.5 2.5 0 0 0-3.5-3.5L4.5 16.5 4 20Z"/>'),
-  trash:      svgS('<path d="M4 7h16"/><path d="M9.5 7V5.5A1.5 1.5 0 0 1 11 4h2a1.5 1.5 0 0 1 1.5 1.5V7"/><path d="M6.5 7 7.4 19a1.6 1.6 0 0 0 1.6 1.5h6a1.6 1.6 0 0 0 1.6-1.5L17.5 7"/>'),
-  monitor:    svgS('<rect x="2.5" y="4" width="19" height="12.5" rx="1.6"/><path d="M8.5 20.5h7M12 16.5v4"/>'),
-  phone:      svgS('<rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18.7h2"/>'),
-  rocket:     svgS('<path d="M13.5 4.5c3-2 6-2 6-2s0 3-2 6c-1.6 2.4-4.2 5-6.4 6.4L8 12.9C9.4 10.7 11.1 6.1 13.5 4.5Z"/><path d="M8.5 13 5 12l2-2.6 2.6.4"/><path d="M11 15.5 12 19l2.6-2v-2.6"/><path d="M6.5 17.5 4 20"/>'),
-  globe:      svgS('<circle cx="12" cy="12" r="9"/><path d="M3.2 9.5h17.6M3.2 14.5h17.6"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18Z"/>'),
-  eyedropper: svgS('<path d="m15.5 3.5 5 5"/><path d="m13.5 5.5 5 5"/><path d="M16 8 8.5 15.5 8 19l3.5-.5L19 11"/><path d="M5.5 18.5 4 20"/>'),
-  group:      svgS('<rect x="3.5" y="3.5" width="8" height="8" rx="1"/><rect x="12.5" y="12.5" width="8" height="8" rx="1"/><path d="M12.5 7.5h4a1 1 0 0 1 1 1v4"/>'),
-  // panels
-  alignLeft: alignIcon('left'), alignHCenter: alignIcon('hcenter'), alignRight: alignIcon('right'),
-  alignTop: alignIcon('top'), alignVMiddle: alignIcon('vmiddle'), alignBottom: alignIcon('bottom'),
-  distH: distIcon('h'), distV: distIcon('v'),
-  orderFront: orderIcon('front'), orderForward: orderIcon('forward'),
-  orderBackward: orderIcon('backward'), orderBack: orderIcon('back'),
+  undo: svg('<path d="M4 8h9.5a5.5 5.5 0 1 1 0 11H7"/><path d="M8 4 4 8l4 4"/>'),
+  redo: svg('<path d="M20 8h-9.5a5.5 5.5 0 1 0 0 11H17"/><path d="m16 4 4 4-4 4"/>'),
+  eye: svg('<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="2.6"/>'),
+  eyeOff: svg('<path d="M4 4.5 19.5 20"/><path d="M9.5 6.2A9.6 9.6 0 0 1 12 5.9c6.4 0 10 6.1 10 6.1a17 17 0 0 1-3.3 3.9"/><path d="M6.4 8.1A16.7 16.7 0 0 0 2 12s3.6 6.1 10 6.1a10 10 0 0 0 3.5-.6"/>'),
+  grip: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/></svg>',
+  hero: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/>'),
+  text: svg('<path d="M5 6.5V5h14v1.5"/><path d="M12 5v14"/><path d="M9 19h6"/>'),
+  image: svg('<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="m20.5 16.5-4.8-5-6.2 7.4"/>'),
+  list: svg('<path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>'),
+  nav: svg('<path d="M4 7h16M4 12h16M4 17h16"/>'),
+  foot: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 15h18"/>'),
+  pencil: svg('<path d="M4 20h4l10-10a2.5 2.5 0 0 0-3.5-3.5L4.5 16.5 4 20Z"/>'),
+  trash: svg('<path d="M4 7h16"/><path d="M9.5 7V5.5A1.5 1.5 0 0 1 11 4h2a1.5 1.5 0 0 1 1.5 1.5V7"/><path d="M6.5 7 7.4 19a1.6 1.6 0 0 0 1.6 1.5h6a1.6 1.6 0 0 0 1.6-1.5L17.5 7"/>'),
+  form: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h6"/>'),
 };
 
-const LAYER_ICON = { text:'text', rect:'rect', ellipse:'ellipse', image:'image', vector:'vector', embed:'code' };
+const state = {
+  doc: null,          // live Document inside the iframe
+  root: null,         // element whose children are the top-level blocks
+  selected: null,     // data-blk id
+  pages: [],          // {id,name,file,html} - html is the saved source per page
+  currentPageId: null,
+  assets: {},         // extra files from a ZIP (name -> dataURL) kept for export
+  originalName: 'site',
+  user: null,
+  publishSlug: null,
+  publishUrl: null,
+};
+const history = { stack: [], index: -1, limit: 60, muted: false };
 
-// Fill in every element that declared an icon in the static markup.
-function injectStaticIcons(root){
-  (root || document).querySelectorAll('[data-icon]').forEach(n=>{
-    const svg = ICONS[n.dataset.icon];
-    if(svg && !n.querySelector('svg')) n.insertAdjacentHTML('afterbegin', svg);
-  });
+// ---------- status ----------
+let statusTimer = null;
+function flash(msg, isErr){
+  const el = $('status');
+  el.textContent = msg;
+  el.style.color = isErr ? '#e77' : 'var(--text-muted)';
+  el.style.opacity = '1';
+  clearTimeout(statusTimer);
+  statusTimer = setTimeout(()=>{ el.style.opacity = '0'; }, 2600);
 }
-injectStaticIcons();
 
-// ---------------- DOM refs ----------------
-const pageCanvas = document.getElementById('pageCanvas');
-const pageScaler = document.getElementById('pageScaler');
-const resizeH = document.getElementById('resizeH');
-const inspector = document.getElementById('inspector');
-const layerList = document.getElementById('layerList');
-const imageInput = document.getElementById('imageInput');
-const zipInput = document.getElementById('zipInput');
-const canvasArea = document.getElementById('canvasArea');
-const railEl = document.getElementById('rail');
-const penHint = document.getElementById('penHint');
-let pendingReplaceId = null;
-let drawOverlay = null;
+// ---------- history ----------
+function snapshot(){
+  return state.root ? state.root.innerHTML : '';
+}
+function historyReset(){
+  history.stack = [snapshot()];
+  history.index = 0;
+  updateHistoryButtons();
+}
+function commit(){
+  if(history.muted || !state.root) return;
+  const s = snapshot();
+  if(history.stack[history.index] === s) return;
+  history.stack = history.stack.slice(0, history.index + 1);
+  history.stack.push(s);
+  if(history.stack.length > history.limit) history.stack.shift();
+  history.index = history.stack.length - 1;
+  updateHistoryButtons();
+}
+function applyHistory(){
+  history.muted = true;
+  state.root.innerHTML = history.stack[history.index];
+  decorate();
+  renderBlockList();
+  renderInspector();
+  history.muted = false;
+  updateHistoryButtons();
+}
+function undo(){ if(history.index > 0){ history.index--; applyHistory(); flash('元に戻しました'); } }
+function redo(){ if(history.index < history.stack.length-1){ history.index++; applyHistory(); flash('やり直しました'); } }
+function updateHistoryButtons(){
+  $('btnUndo').disabled = history.index <= 0;
+  $('btnRedo').disabled = history.index >= history.stack.length - 1;
+}
 
-// ---------------- Helpers ----------------
-function uid(){ return 'el' + (state.idCounter++); }
-function nextZ(){ return state.els.length ? Math.max.apply(null, state.els.map(e=>e.z)) + 1 : 1; }
-function $(id){ return document.getElementById(id); }
-function clamp(v,min,max){ return Math.min(max, Math.max(min, v)); }
+// ---------- import ----------
+function parseHtml(text){
+  return new DOMParser().parseFromString(text, 'text/html');
+}
 
-// ---------------- Zoom ----------------
-function applyZoom(){
-  pageCanvas.style.transform = 'scale(' + state.zoom + ')';
-  pageScaler.style.width = (state.canvasWidth * state.zoom) + 'px';
-  pageScaler.style.height = (state.canvasHeight * state.zoom) + 'px';
-  const zl = $('zoomLabel'); if(zl) zl.textContent = Math.round(state.zoom * 100) + '%';
-}
-function syncCanvasBox(){
-  pageCanvas.style.width = state.canvasWidth + 'px';
-  pageCanvas.style.height = state.canvasHeight + 'px';
-  pageCanvas.style.background = state.canvasBg;
-  applyZoom();
-}
-function setZoom(z, manual){
-  state.zoom = clamp(z, 0.1, 3);
-  if(manual) state.autoFit = false;
-  applyZoom();
-}
-function zoomToFit(){
-  const availW = canvasArea.clientWidth - 48;
-  const availH = canvasArea.clientHeight - 100;
-  if(availW <= 0) return;
-  const z = Math.min(availW / state.canvasWidth, availH / state.canvasHeight, 1);
-  state.zoom = clamp(z, 0.1, 1);
-  state.autoFit = true;
-  applyZoom();
-}
-function escapeHtml(str){
-  return String(str==null?'':str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
-function placeCaretAtEnd(node){
-  const range = document.createRange();
-  range.selectNodeContents(node);
-  range.collapse(false);
-  const sel = window.getSelection();
-  sel.removeAllRanges();
-  sel.addRange(range);
-}
-function selectAllContent(node){
-  const range = document.createRange();
-  range.selectNodeContents(node);
-  const sel = window.getSelection();
-  sel.removeAllRanges();
-  sel.addRange(range);
-}
-function fillToCss(fill){
-  if(!fill) return '#ffffff';
-  if(fill.mode==='gradient'){
-    if(fill.gradType==='radial') return `radial-gradient(circle, ${fill.from}, ${fill.to})`;
-    return `linear-gradient(${fill.angle}deg, ${fill.from}, ${fill.to})`;
+// The block row is the deepest single wrapper that actually holds several
+// siblings - that is what a person thinks of as "the sections of the page".
+function findBlockRoot(doc){
+  let root = doc.querySelector('main') || doc.body;
+  for(let depth = 0; depth < 6; depth++){
+    const kids = elementChildren(root);
+    if(kids.length === 1 && elementChildren(kids[0]).length > 1){ root = kids[0]; continue; }
+    break;
   }
-  return fill.color;
+  return root;
 }
-function fillToSvgRef(fill, gradId){
-  if(fill.mode==='gradient') return `url(#${gradId})`;
-  return fill.color;
-}
-function regularPolygon(n, cx, cy, r, startDeg){
-  const pts=[];
-  for(let i=0;i<n;i++){
-    const ang = (startDeg + i*360/n) * Math.PI/180;
-    pts.push({x:cx+r*Math.cos(ang), y:cy+r*Math.sin(ang)});
-  }
-  return pts;
-}
-function starPointsFn(cx,cy,rOuter,rInner,spikes){
-  const pts=[];
-  for(let i=0;i<spikes*2;i++){
-    const r = i%2===0? rOuter : rInner;
-    const ang = (-90 + i*360/(spikes*2)) * Math.PI/180;
-    pts.push({x:cx+r*Math.cos(ang), y:cy+r*Math.sin(ang)});
-  }
-  return pts;
-}
-function presetPoints(kind, w, h){
-  const cx=w/2, cy=h/2;
-  if(kind==='triangle') return [{x:cx,y:0},{x:w,y:h},{x:0,y:h}];
-  if(kind==='pentagon') return regularPolygon(5, cx, cy, Math.min(w,h)/2, -90);
-  if(kind==='hexagon') return regularPolygon(6, cx, cy, Math.min(w,h)/2, -90);
-  if(kind==='star') return starPointsFn(cx, cy, Math.min(w,h)/2, Math.min(w,h)/4, 5);
-  if(kind==='arrow') return [{x:0,y:h*0.35},{x:w*0.6,y:h*0.35},{x:w*0.6,y:0},{x:w,y:h*0.5},{x:w*0.6,y:h},{x:w*0.6,y:h*0.65},{x:0,y:h*0.65}];
-  if(kind==='line') return [{x:0,y:h/2},{x:w,y:h/2}];
-  return [{x:0,y:0},{x:w,y:0},{x:w,y:h},{x:0,y:h}];
+function elementChildren(el){
+  return [...el.children].filter(c=>!['SCRIPT','STYLE','LINK','TEMPLATE','NOSCRIPT'].includes(c.tagName));
 }
 
-// ---------------- Add elements ----------------
-function addElement(type){
-  const id = uid();
-  const offset = (state.els.length % 6) * 16;
-  const base = { id, type, z: nextZ(), anim:{type:'none',duration:600,delay:0,trigger:'scroll'} };
-  let el;
-  if(type==='text'){
-    el = Object.assign(base, {x:100+offset,y:100+offset,w:400,h:60,text:'テキストを入力',fontSize:24,color:'#1a1a1a',fontWeight:'400',textAlign:'left',fontFamily:FONTS[0].value,writingMode:'horizontal'});
-  } else if(type==='rect'){
-    el = Object.assign(base, {x:100+offset,y:100+offset,w:180,h:100,fill:{mode:'solid',color:'#6c5ce7',gradType:'linear',from:'#6c5ce7',to:'#00b894',angle:90},borderColor:'',borderWidth:0,radius:8});
-  } else if(type==='ellipse'){
-    el = Object.assign(base, {x:100+offset,y:100+offset,w:120,h:120,fill:{mode:'solid',color:'#f2994a',gradType:'linear',from:'#f2994a',to:'#eb5757',angle:90},borderColor:'',borderWidth:0});
-  } else if(type==='embed'){
-    el = Object.assign(base, {x:100+offset,y:100+offset,w:480,h:270,html:''});
-  }
-  state.els.push(el);
-  renderAll();
-  selectElement(id);
-  commit();
-  if(type==='text'){
-    requestAnimationFrame(()=>{
-      const node = $(id);
-      if(node){
-        node.contentEditable='true';
-        node.style.userSelect='text';
-        node.style.cursor='text';
-        node.focus();
-        selectAllContent(node);
-      }
-    });
-  }
-  return el;
-}
+function newId(){ return 'p' + Math.random().toString(36).slice(2,8); }
 
-function addImageElement(dataUrl, naturalW, naturalH){
-  const id = uid();
-  let w = 300, h = 200;
-  if(naturalW && naturalH){
-    const ratio = naturalW/naturalH;
-    if(ratio > 1){ w = 320; h = Math.round(320/ratio); } else { h = 260; w = Math.round(260*ratio); }
-  }
-  const el = { id, type:'image', x:100, y:100, w, h, z: nextZ(), src:dataUrl, objectFit:'cover', radius:0,
-    anim:{type:'none',duration:600,delay:0,trigger:'scroll'} };
-  state.els.push(el);
-  renderAll();
-  selectElement(id);
-  commit();
-}
-
-function addVectorPreset(kind){
-  const id = uid();
-  const w=150,h=150;
-  const localPts = presetPoints(kind, w, h);
-  const offset = (state.els.length % 6) * 16;
-  const x = 100+offset, y=100+offset;
-  const points = localPts.map(p=>({x:x+p.x, y:y+p.y}));
-  const closed = kind !== 'line';
-  const el = {
-    id, type:'vector', x, y, w, h, z: nextZ(),
-    points, closed,
-    fill:{mode:'solid', color:'#6c5ce7', gradType:'linear', from:'#6c5ce7', to:'#00b894', angle:90},
-    borderColor: closed ? '' : '#1a1a1a',
-    borderWidth: closed ? 0 : 4,
-    anim:{type:'none',duration:600,delay:0,trigger:'scroll'}
-  };
-  state.els.push(el);
-  renderAll();
-  selectElement(id);
-  commit();
-}
-
-// ---------------- Pen tool ----------------
-function startPenTool(){
-  cancelPenTool();
-  state.drawingMode = true;
-  state.tempPoints = [];
-  deselectAll();
-  pageCanvas.style.cursor = 'crosshair';
-  drawOverlay = document.createElementNS('http://www.w3.org/2000/svg','svg');
-  drawOverlay.style.position='absolute';
-  drawOverlay.style.left='0'; drawOverlay.style.top='0';
-  drawOverlay.style.width='100%'; drawOverlay.style.height='100%';
-  drawOverlay.style.pointerEvents='none';
-  drawOverlay.style.zIndex='500';
-  drawOverlay.setAttribute('overflow','visible');
-  pageCanvas.insertBefore(drawOverlay, resizeH);
-  penHint.style.display='block';
-}
-function addPenPoint(x,y){
-  state.tempPoints.push({x:x,y:y});
-  renderPenPreview();
-}
-function renderPenPreview(){
-  if(!drawOverlay) return;
-  while(drawOverlay.firstChild) drawOverlay.removeChild(drawOverlay.firstChild);
-  const svgNS='http://www.w3.org/2000/svg';
-  const pts = state.tempPoints;
-  if(pts.length>1){
-    const poly = document.createElementNS(svgNS,'polyline');
-    poly.setAttribute('points', pts.map(p=>p.x+','+p.y).join(' '));
-    poly.setAttribute('fill','none');
-    poly.setAttribute('stroke','#6c5ce7');
-    poly.setAttribute('stroke-width','2');
-    poly.setAttribute('stroke-dasharray','5 4');
-    drawOverlay.appendChild(poly);
-  }
-  pts.forEach((p,i)=>{
-    const c = document.createElementNS(svgNS,'circle');
-    c.setAttribute('cx',p.x); c.setAttribute('cy',p.y); c.setAttribute('r', i===0?7:5);
-    c.setAttribute('fill', i===0? '#ffffff':'#6c5ce7');
-    c.setAttribute('stroke','#6c5ce7'); c.setAttribute('stroke-width','2');
-    drawOverlay.appendChild(c);
-  });
-}
-function finishPenPath(closeShape){
-  if(state.tempPoints.length >= 3){
-    const xs = state.tempPoints.map(p=>p.x), ys = state.tempPoints.map(p=>p.y);
-    const minX = Math.min.apply(null,xs), minY = Math.min.apply(null,ys);
-    const maxX = Math.max.apply(null,xs), maxY = Math.max.apply(null,ys);
-    const el = {
-      id: uid(), type:'vector', x:minX, y:minY, w:Math.max(20,maxX-minX), h:Math.max(20,maxY-minY), z: nextZ(),
-      points: state.tempPoints.slice(),
-      closed: true,
-      fill:{mode:'solid', color:'#6c5ce7', gradType:'linear', from:'#6c5ce7', to:'#00b894', angle:90},
-      borderColor:'', borderWidth:0,
-      anim:{type:'none',duration:600,delay:0,trigger:'scroll'}
-    };
-    state.els.push(el);
-    renderAll();
-    selectElement(el.id);
-    commit();
-  }
-  cancelPenTool();
-}
-function cancelPenTool(){
-  state.drawingMode = false;
-  state.tempPoints = [];
-  pageCanvas.style.cursor = '';
-  if(drawOverlay){ drawOverlay.remove(); drawOverlay=null; }
-  penHint.style.display='none';
-}
-
-// ---------------- Smart guides / snapping ----------------
-const SNAP_TOL = 6;   // canvas px
-let guideLayer = null;
-
-function ensureGuideLayer(){
-  if(!guideLayer || !guideLayer.isConnected){
-    guideLayer = document.createElement('div');
-    guideLayer.className = 'guide-layer';
-    pageCanvas.insertBefore(guideLayer, resizeH);
-  }
-  return guideLayer;
-}
-function hideGuides(){ if(guideLayer) guideLayer.innerHTML = ''; }
-function showGuides(lines){
-  const g = ensureGuideLayer();
-  g.innerHTML = lines.map(l=> l.vertical
-    ? `<div class="guide guide-v" style="left:${l.pos}px;"></div>`
-    : `<div class="guide guide-h" style="top:${l.pos}px;"></div>`
-  ).join('');
-}
-// Edges/centers worth snapping to: the canvas itself plus every other element.
-function snapTargets(excludeIds){
-  const vs = [0, state.canvasWidth/2, state.canvasWidth];
-  const hs = [0, state.canvasHeight/2, state.canvasHeight];
-  state.els.forEach(el=>{
-    if(excludeIds.indexOf(el.id) > -1 || !isEditable(el)) return;
-    vs.push(el.x, el.x + el.w/2, el.x + el.w);
-    hs.push(el.y, el.y + el.h/2, el.y + el.h);
-  });
-  return { vs, hs };
-}
-// Nudge a proposed bounding box onto the nearest target within tolerance.
-function computeSnap(minX, minY, maxX, maxY, targets){
-  const tol = SNAP_TOL / Math.max(state.zoom, 0.2);
-  const cx = (minX + maxX)/2, cy = (minY + maxY)/2;
-  let bx = null, by = null;
-  [minX, cx, maxX].forEach(val=>{
-    targets.vs.forEach(t=>{
-      const d = t - val;
-      if(Math.abs(d) <= tol && (bx === null || Math.abs(d) < Math.abs(bx.d))) bx = { d, pos:t };
-    });
-  });
-  [minY, cy, maxY].forEach(val=>{
-    targets.hs.forEach(t=>{
-      const d = t - val;
-      if(Math.abs(d) <= tol && (by === null || Math.abs(d) < Math.abs(by.d))) by = { d, pos:t };
-    });
-  });
-  const lines = [];
-  if(bx) lines.push({ vertical:true, pos:bx.pos });
-  if(by) lines.push({ vertical:false, pos:by.pos });
-  return { dx: bx ? bx.d : 0, dy: by ? by.d : 0, lines };
-}
-
-// ---------------- Drag & resize ----------------
-function attachDrag(node, el){
-  node.addEventListener('pointerdown', (e)=>{
-    if(node.isContentEditable) return;
-    if(e.target.classList.contains('handle')) return;
-    if(!isEditable(el)) return;          // locked/hidden elements ignore pointer input
-    e.stopPropagation();
-    // Shift/Ctrl click toggles this element in the selection (no drag).
-    if(e.shiftKey || e.ctrlKey || e.metaKey){
-      selectElement(el.id, true);
-      return;
-    }
-    // Plain click on an unselected element selects just it; clicking one that
-    // is already part of a multi-selection keeps the whole group and drags it.
-    if(!isSelected(el.id)) setSelection([el.id]);
-    const movers = selectedEls().map(m=>({
-      el: m, ox: m.x, oy: m.y,
-      opts: m.type==='vector' ? m.points.map(p=>({x:p.x,y:p.y})) : null
-    }));
-    const startX = e.clientX, startY = e.clientY;
-    try{ node.setPointerCapture(e.pointerId); }catch(err){}
-    const movedIds = movers.map(m=>m.el.id);
-    const bb0 = selectionBBox(movers.map(m=>m.el));
-    function onMove(ev){
-      let dx = (ev.clientX - startX) / state.zoom, dy = (ev.clientY - startY) / state.zoom;
-      // Alt bypasses snapping, matching the usual vector-editor convention.
-      if(state.snap && !ev.altKey){
-        const t = snapTargets(movedIds);
-        const s = computeSnap(bb0.minX+dx, bb0.minY+dy, bb0.maxX+dx, bb0.maxY+dy, t);
-        dx += s.dx; dy += s.dy;
-        showGuides(s.lines);
-      } else {
-        hideGuides();
-      }
-      movers.forEach(m=>{
-        m.el.x = m.ox + dx; m.el.y = m.oy + dy;
-        if(m.opts){ m.el.points = m.opts.map(p=>({x:p.x+dx, y:p.y+dy})); }
-        const n = $(m.el.id);
-        if(n){ n.style.left = m.el.x+'px'; n.style.top = m.el.y+'px'; }
-      });
-      updateXYWHFields();
-    }
-    function onUp(ev){
-      try{ node.releasePointerCapture(ev.pointerId); }catch(err){}
-      node.removeEventListener('pointermove', onMove);
-      node.removeEventListener('pointerup', onUp);
-      hideGuides();
-      commit();
-    }
-    node.addEventListener('pointermove', onMove);
-    node.addEventListener('pointerup', onUp);
-  });
-}
-
-function startResize(e, el, node, dir){
-  e.stopPropagation();
-  e.preventDefault();
-  dir = dir || 'se';
-  const startX = e.clientX, startY = e.clientY;
-  const origW = el.w, origH = el.h, origX = el.x, origY = el.y;
-  const origPoints = el.type==='vector' ? el.points.map(p=>({x:p.x,y:p.y})) : null;
-  const west = dir.indexOf('w') > -1, east = dir.indexOf('e') > -1;
-  const north = dir.indexOf('n') > -1, south = dir.indexOf('s') > -1;
-  const handleEl = e.currentTarget;
-  try{ handleEl.setPointerCapture(e.pointerId); }catch(err){}
-  function onMove(ev){
-    const dx = (ev.clientX - startX) / state.zoom, dy = (ev.clientY - startY) / state.zoom;
-    let newX = origX, newY = origY, newW = origW, newH = origH;
-    if(east)  newW = Math.max(20, origW + dx);
-    if(west){ newW = Math.max(20, origW - dx); newX = origX + (origW - newW); }
-    if(south) newH = Math.max(20, origH + dy);
-    if(north){ newH = Math.max(20, origH - dy); newY = origY + (origH - newH); }
-    if(origPoints){
-      el.points = origPoints.map(p=>({
-        x: newX + (origW ? (p.x - origX) / origW : 0) * newW,
-        y: newY + (origH ? (p.y - origY) / origH : 0) * newH
-      }));
-    }
-    el.x = newX; el.y = newY; el.w = newW; el.h = newH;
-    node.style.left = el.x+'px';
-    node.style.top = el.y+'px';
-    node.style.width = el.w+'px';
-    node.style.height = el.h+'px';
-    if(el.type==='vector'){
-      const oldSvg = node.querySelector('svg');
-      if(oldSvg) oldSvg.remove();
-      node.appendChild(buildVectorSvg(el));
-    }
-    updateXYWHFields();
-  }
-  function onUp(ev){
-    try{ handleEl.releasePointerCapture(ev.pointerId); }catch(err){}
-    handleEl.removeEventListener('pointermove', onMove);
-    handleEl.removeEventListener('pointerup', onUp);
-    commit();
-  }
-  handleEl.addEventListener('pointermove', onMove);
-  handleEl.addEventListener('pointerup', onUp);
-}
-
-// ---------------- Vector SVG ----------------
-function buildSvgGradientNode(fill, gradId){
-  const svgNS='http://www.w3.org/2000/svg';
-  const gradEl = document.createElementNS(svgNS, fill.gradType==='radial' ? 'radialGradient' : 'linearGradient');
-  gradEl.setAttribute('id', gradId);
-  if(fill.gradType!=='radial'){ gradEl.setAttribute('gradientTransform', `rotate(${fill.angle} 0.5 0.5)`); }
-  const stop1 = document.createElementNS(svgNS,'stop');
-  stop1.setAttribute('offset','0%'); stop1.setAttribute('stop-color', fill.from);
-  const stop2 = document.createElementNS(svgNS,'stop');
-  stop2.setAttribute('offset','100%'); stop2.setAttribute('stop-color', fill.to);
-  gradEl.appendChild(stop1); gradEl.appendChild(stop2);
-  return gradEl;
-}
-function buildVectorSvg(el){
-  const svgNS='http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(svgNS,'svg');
-  svg.setAttribute('width','100%');
-  svg.setAttribute('height','100%');
-  svg.setAttribute('viewBox', `0 0 ${el.w} ${el.h}`);
-  svg.setAttribute('preserveAspectRatio','none');
-  svg.style.pointerEvents='none';
-  const gradId = 'grad-'+el.id;
-  if(el.fill.mode==='gradient' && el.closed){
-    const defs = document.createElementNS(svgNS,'defs');
-    defs.appendChild(buildSvgGradientNode(el.fill, gradId));
-    svg.appendChild(defs);
-  }
-  const shape = document.createElementNS(svgNS, el.closed ? 'polygon' : 'polyline');
-  const ptsAttr = el.points.map(p=>(p.x-el.x)+','+(p.y-el.y)).join(' ');
-  shape.setAttribute('points', ptsAttr);
-  shape.setAttribute('fill', el.closed ? fillToSvgRef(el.fill, gradId) : 'none');
-  shape.setAttribute('stroke', el.borderWidth>0 ? (el.borderColor||'#000') : 'none');
-  shape.setAttribute('stroke-width', el.borderWidth||0);
-  shape.setAttribute('stroke-linejoin','round');
-  shape.setAttribute('stroke-linecap','round');
-  svg.appendChild(shape);
-  return svg;
-}
-
-// ---------------- Build / update nodes ----------------
-function buildEmbedPlaceholder(el){
-  const box = document.createElement('div');
-  box.className = 'embed-ph';
-  const has = !!(el.html && el.html.trim());
-  box.innerHTML = `<div class="embed-ic">${ICONS.code}</div><div>${has ? '埋め込みコード' : 'コード未設定'}</div>` +
-    (has ? '<div class="embed-note">公開時に表示されます</div>' : '<div class="embed-note">右パネルでHTMLを貼り付け</div>');
-  return box;
-}
-
-function buildNode(el){
-  const node = document.createElement('div');
-  node.className = 'el el-'+el.type;
-  node.id = el.id;
-  node.style.left = el.x+'px';
-  node.style.top = el.y+'px';
-  node.style.width = el.w+'px';
-  node.style.height = el.h+'px';
-  node.style.zIndex = el.z;
-  if(isSelected(el.id)) node.classList.add('selected');
-  if(el.hidden) node.style.display = 'none';
-  if(el.locked) node.style.cursor = 'default';
-
-  if(el.type==='text'){
-    node.contentEditable = 'false';
-    node.spellcheck = false;
-    node.innerText = el.text;
-    node.style.fontSize = el.fontSize+'px';
-    node.style.color = el.color;
-    node.style.fontWeight = el.fontWeight;
-    node.style.textAlign = el.textAlign;
-    node.style.fontFamily = el.fontFamily;
-    if(el.writingMode==='vertical') node.classList.add('vertical');
-    node.addEventListener('input', ()=>{ el.text = node.innerText; });
-    node.addEventListener('dblclick', (e)=>{
-      e.stopPropagation();
-      node.contentEditable = 'true';
-      node.style.userSelect = 'text';
-      node.style.cursor = 'text';
-      node.focus();
-      placeCaretAtEnd(node);
-    });
-    node.addEventListener('blur', ()=>{
-      node.contentEditable = 'false';
-      node.style.userSelect = '';
-      node.style.cursor = '';
-      el.text = node.innerText;
-      renderLayers();
-    });
-    node.addEventListener('keydown', (e)=>{
-      if(e.key==='Escape') node.blur();
-      e.stopPropagation();
-    });
-  } else if(el.type==='rect' || el.type==='ellipse'){
-    node.style.background = fillToCss(el.fill);
-    node.style.borderRadius = el.type==='ellipse' ? '50%' : el.radius+'px';
-    if(el.borderWidth>0) node.style.border = el.borderWidth+'px solid '+(el.borderColor||'#000');
-  } else if(el.type==='image'){
-    const img = document.createElement('img');
-    img.src = el.src;
-    img.style.objectFit = el.objectFit;
-    img.style.borderRadius = (el.radius||0)+'px';
-    node.appendChild(img);
-  } else if(el.type==='vector'){
-    node.appendChild(buildVectorSvg(el));
-  } else if(el.type==='embed'){
-    // The editor shows a placeholder; the raw HTML is only emitted on export,
-    // so nothing from the snippet runs while you are designing.
-    node.appendChild(buildEmbedPlaceholder(el));
-  }
-
-  attachDrag(node, el);
-  if(isEditable(el)){
-    const dirs = (el.type==='vector' || el.type==='line') ? ['nw','ne','se','sw'] : ['nw','n','ne','e','se','s','sw','w'];
-    dirs.forEach(dir=>{
-      const handle = document.createElement('div');
-      handle.className = 'handle ' + dir;
-      handle.addEventListener('pointerdown', (e)=>startResize(e, el, node, dir));
-      node.appendChild(handle);
-    });
-  }
-
-  return node;
-}
-
-function updateNode(el){
-  const node = $(el.id);
-  if(!node) return;
-  node.style.left = el.x+'px';
-  node.style.top = el.y+'px';
-  node.style.width = el.w+'px';
-  node.style.height = el.h+'px';
-  node.style.zIndex = el.z;
-  if(el.type==='text'){
-    node.style.fontSize = el.fontSize+'px';
-    node.style.color = el.color;
-    node.style.fontWeight = el.fontWeight;
-    node.style.textAlign = el.textAlign;
-    node.style.fontFamily = el.fontFamily;
-    node.classList.toggle('vertical', el.writingMode==='vertical');
-  } else if(el.type==='rect'){
-    node.style.background = fillToCss(el.fill);
-    node.style.borderRadius = el.radius+'px';
-    node.style.border = el.borderWidth>0 ? el.borderWidth+'px solid '+(el.borderColor||'#000') : 'none';
-  } else if(el.type==='ellipse'){
-    node.style.background = fillToCss(el.fill);
-    node.style.border = el.borderWidth>0 ? el.borderWidth+'px solid '+(el.borderColor||'#000') : 'none';
-  } else if(el.type==='image'){
-    const img = node.querySelector('img');
-    if(img){ img.style.objectFit = el.objectFit; img.style.borderRadius = (el.radius||0)+'px'; }
-  } else if(el.type==='vector'){
-    const oldSvg = node.querySelector('svg');
-    if(oldSvg) oldSvg.remove();
-    node.appendChild(buildVectorSvg(el));
-  } else if(el.type==='embed'){
-    const old = node.querySelector('.embed-ph');
-    if(old) old.remove();
-    node.appendChild(buildEmbedPlaceholder(el));
-  }
-  renderLayers();
-}
-
-function updateXYWHFields(){
-  const el = state.els.find(e=>e.id===state.selectedId);
-  if(!el) return;
-  const fx=$('fx'), fy=$('fy'), fw=$('fw'), fh=$('fh');
-  if(fx) fx.value = Math.round(el.x);
-  if(fy) fy.value = Math.round(el.y);
-  if(fw) fw.value = Math.round(el.w);
-  if(fh) fh.value = Math.round(el.h);
-}
-
-// ---------------- Render ----------------
-function renderAll(){
-  [...pageCanvas.querySelectorAll('.el')].forEach(n=>n.remove());
-  state.els.slice().sort((a,b)=>a.z-b.z).forEach(el=>{
-    const node = buildNode(el);
-    pageCanvas.insertBefore(node, resizeH);
-  });
-  renderLayers();
-}
-
-function layerLabel(el){
-  if(el.type==='text') return (el.text||'').trim().slice(0,14) || 'テキスト';
-  if(el.type==='ellipse') return '円';
-  if(el.type==='image') return '画像';
-  if(el.type==='vector') return 'ベクター図形';
-  if(el.type==='embed') return '埋め込みコード';
-  return '四角形';
-}
-
-function renderLayers(){
-  // The list reads front-to-back, matching how the layers stack on the canvas.
-  const sorted = state.els.slice().sort((a,b)=>b.z-a.z);
-  if(!sorted.length){
-    layerList.innerHTML = '<div style="color:var(--text-muted);font-size:12px;">要素がありません</div>';
+// Import replaces the whole project with a single page.
+async function loadDocument(text, assets, name){
+  const doc = parseHtml(text);
+  if(!doc.body || !doc.body.children.length){
+    flash('HTMLを読み取れませんでした', true);
     return;
   }
-  layerList.innerHTML = sorted.map(el=>{
-    const cls = [
-      'layer-item',
-      isSelected(el.id) ? 'active' : '',
-      el.hidden ? 'is-hidden' : '',
-      el.locked ? 'is-locked' : '',
-    ].filter(Boolean).join(' ');
-    return `
-    <div class="${cls}" data-id="${el.id}" draggable="${el.locked ? 'false' : 'true'}">
-      <span class="lic">${ICONS[LAYER_ICON[el.type]] || ''}</span>
-      <span class="lname">${escapeHtml(layerLabel(el))}</span>
-      ${el.groupId ? '<span class="badge-group" title="グループ">組</span>' : ''}
-      <button class="ltog ${el.hidden?'on':''}" data-vis="${el.id}" title="${el.hidden?'表示する':'隠す'}">${el.hidden?ICONS.eyeOff:ICONS.eye}</button>
-      <button class="ltog ${el.locked?'on':''}" data-lock="${el.id}" title="${el.locked?'ロック解除':'ロック'}">${el.locked?ICONS.lock:ICONS.unlock}</button>
-      <span class="grip" title="ドラッグで重ね順を変更">${ICONS.grip}</span>
-    </div>`;
-  }).join('');
-  layerList.querySelectorAll('.layer-item').forEach(n=>{
-    n.addEventListener('click', (ev)=>{
-      if(ev.target.closest('[data-vis],[data-lock]')) return;
-      selectElement(n.dataset.id, ev.shiftKey||ev.ctrlKey||ev.metaKey);
-    });
-    attachLayerDnd(n);
-  });
-  layerList.querySelectorAll('[data-vis]').forEach(b=>b.addEventListener('click', (ev)=>{
-    ev.stopPropagation(); toggleHidden(b.dataset.vis);
-  }));
-  layerList.querySelectorAll('[data-lock]').forEach(b=>b.addEventListener('click', (ev)=>{
-    ev.stopPropagation(); toggleLock(b.dataset.lock);
-  }));
-}
+  state.assets = assets || {};
+  state.originalName = name || 'site';
 
-// ---------------- Layer drag & drop reordering ----------------
-let dragLayerId = null;
-function clearDropMarks(){
-  layerList.querySelectorAll('.layer-item').forEach(n=>n.classList.remove('drop-before','drop-after'));
-}
-function attachLayerDnd(node){
-  node.addEventListener('dragstart', (e)=>{
-    dragLayerId = node.dataset.id;
-    node.classList.add('dragging');
-    try{ e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragLayerId); }catch(err){}
-  });
-  node.addEventListener('dragend', ()=>{
-    node.classList.remove('dragging');
-    dragLayerId = null;
-    clearDropMarks();
-  });
-  node.addEventListener('dragover', (e)=>{
-    if(!dragLayerId || node.dataset.id===dragLayerId) return;
-    e.preventDefault();
-    try{ e.dataTransfer.dropEffect = 'move'; }catch(err){}
-    const r = node.getBoundingClientRect();
-    const after = (e.clientY - r.top) > r.height/2;
-    clearDropMarks();
-    node.classList.add(after ? 'drop-after' : 'drop-before');
-  });
-  node.addEventListener('dragleave', ()=>node.classList.remove('drop-before','drop-after'));
-  node.addEventListener('drop', (e)=>{
-    e.preventDefault();
-    if(!dragLayerId || node.dataset.id===dragLayerId){ clearDropMarks(); return; }
-    const r = node.getBoundingClientRect();
-    const after = (e.clientY - r.top) > r.height/2;
-    clearDropMarks();
-    dropLayer(dragLayerId, node.dataset.id, after);
-  });
-}
-function dropLayer(dragId, targetId, after){
-  // Work in list order (front -> back), then translate back into z values.
-  let ids = state.els.slice().sort((a,b)=>b.z-a.z).map(e=>e.id);
-  ids = ids.filter(id=>id!==dragId);
-  const ti = ids.indexOf(targetId);
-  if(ti === -1) return;
-  ids.splice(after ? ti+1 : ti, 0, dragId);
-  applyOrder(ids.slice().reverse());   // reverse => back -> front
-}
-
-// ---------------- Stacking order ----------------
-function orderedEls(){ return state.els.slice().sort((a,b)=>a.z-b.z); }  // back -> front
-// Assign sequential z from an array of ids or elements ordered back -> front.
-function applyOrder(order){
-  order.forEach((item, idx)=>{
-    const el = typeof item === 'string' ? state.els.find(e=>e.id===item) : item;
-    if(!el) return;
-    el.z = idx + 1;
-    const n = $(el.id);
-    if(n) n.style.zIndex = el.z;
-  });
-  renderLayers();
-  commit();
-}
-function changeOrderSelected(how){
-  const sel = selectedEls();
-  if(!sel.length) return;
-  let arr = orderedEls();
-  const inSel = (el)=>sel.indexOf(el) > -1;
-  if(how==='front'){
-    arr = arr.filter(e=>!inSel(e)).concat(arr.filter(inSel));
-  } else if(how==='back'){
-    arr = arr.filter(inSel).concat(arr.filter(e=>!inSel(e)));
-  } else if(how==='forward'){
-    for(let i=arr.length-2; i>=0; i--){
-      if(inSel(arr[i]) && !inSel(arr[i+1])){ const t=arr[i]; arr[i]=arr[i+1]; arr[i+1]=t; }
+  // Inline the stylesheets that came with a ZIP so the preview matches.
+  Object.keys(state.assets).forEach(fname=>{
+    if(!/\.css$/i.test(fname)) return;
+    const link = [...doc.querySelectorAll('link[rel=stylesheet]')]
+      .find(l=>(l.getAttribute('href')||'').split('/').pop() === fname.split('/').pop());
+    if(link){
+      const st = doc.createElement('style');
+      st.textContent = state.assets[fname];
+      st.setAttribute('data-from', fname);
+      link.replaceWith(st);
     }
-  } else if(how==='backward'){
-    for(let i=1; i<arr.length; i++){
-      if(inSel(arr[i]) && !inSel(arr[i-1])){ const t=arr[i]; arr[i]=arr[i-1]; arr[i-1]=t; }
+  });
+  // Point relative image sources at the bundled data URLs.
+  doc.querySelectorAll('img[src]').forEach(img=>{
+    const src = img.getAttribute('src') || '';
+    if(/^(https?:|data:|\/)/i.test(src)) return;
+    const hit = Object.keys(state.assets).find(f=>f.split('/').pop() === src.split('/').pop() && !/\.(css|js|html?)$/i.test(f));
+    if(hit) img.setAttribute('src', state.assets[hit]);
+  });
+
+  const page = { id:newId(), name:'ホーム', file:'index.html', html:'<!DOCTYPE html>' + doc.documentElement.outerHTML };
+  state.pages = [page];
+  state.currentPageId = page.id;
+  mountHtml(page.html);
+}
+
+// ---------- stage ----------
+const EDITOR_CSS = `
+[data-blk]{position:relative;}
+[data-blk]:hover{outline:2px solid rgba(108,92,231,.55);outline-offset:-2px;cursor:pointer;}
+[data-blk].blk-sel{outline:2px solid #6c5ce7;outline-offset:-2px;}
+[data-blk][data-blk-off]{opacity:.3;}
+[data-edit-text]:hover{background:rgba(108,92,231,.10);}
+[data-edit-text]:focus{background:rgba(108,92,231,.14);outline:1px dashed #6c5ce7;}
+img{cursor:pointer;}
+`;
+
+// Loads one page's source into the iframe and rebinds the editor to it.
+function mountHtml(html){
+  const frame = $('stage');
+  frame.srcdoc = html;
+  frame.onload = ()=>{
+    const d = frame.contentDocument;
+    if(!d) return;
+    state.doc = d;
+    state.root = findRootById(d);
+    state.selected = null;
+    if(!d.getElementById('__editor_css')){
+      const st = d.createElement('style');
+      st.id = '__editor_css';
+      st.textContent = EDITOR_CSS;
+      d.head.appendChild(st);
     }
-  }
-  applyOrder(arr);
-}
-
-function isSelected(id){ return state.selectedIds.indexOf(id) > -1; }
-function selectedEls(){ return state.selectedIds.map(id=>state.els.find(e=>e.id===id)).filter(Boolean); }
-function syncSelectionDom(){
-  document.querySelectorAll('.el').forEach(n=>n.classList.toggle('selected', isSelected(n.id)));
-  document.querySelectorAll('.layer-item').forEach(n=>n.classList.toggle('active', isSelected(n.dataset.id)));
-  pageCanvas.classList.toggle('multi-select', state.selectedIds.length > 1);
-}
-function setSelection(ids){
-  const usable = ids.filter(id=>{
-    const el = state.els.find(e=>e.id===id);
-    return el && isEditable(el);
-  });
-  state.selectedIds = expandGroups(usable);
-  state.selectedId = state.selectedIds.length ? state.selectedIds[state.selectedIds.length-1] : null;
-  syncSelectionDom();
-  renderInspector();
-  if(state.selectedIds.length && window.innerWidth <= 880) inspector.classList.add('open');
-}
-
-function selectElement(id, additive){
-  const el = state.els.find(e=>e.id===id);
-  if(!el || !isEditable(el)) return;
-  const members = el.groupId ? state.els.filter(e=>e.groupId===el.groupId).map(e=>e.id) : [id];
-  if(additive){
-    // Shift-clicking any member of a fully selected group drops the group.
-    const allIn = members.every(m=>isSelected(m));
-    let next = state.selectedIds.slice();
-    if(allIn) next = next.filter(sid=>members.indexOf(sid) === -1);
-    else members.forEach(m=>{ if(next.indexOf(m) === -1) next.push(m); });
-    setSelection(next);
-  } else {
-    setSelection(members);
-  }
-}
-
-function deselectAll(){ setSelection([]); }
-
-function deleteElement(id){
-  state.els = state.els.filter(e=>e.id!==id);
-  syncPageFromState();
-  const node = $(id);
-  if(node) node.remove();
-  state.selectedIds = state.selectedIds.filter(sid=>sid!==id);
-  setSelection(state.selectedIds);
-  renderLayers();
-  commit();
-}
-
-function deleteSelected(){
-  if(!state.selectedIds.length) return;
-  const ids = state.selectedIds.slice();
-  state.els = state.els.filter(e=>ids.indexOf(e.id) === -1);
-  syncPageFromState();
-  ids.forEach(id=>{ const n=$(id); if(n) n.remove(); });
-  setSelection([]);
-  renderLayers();
-}
-
-function duplicateSelected(){
-  const els = selectedEls();
-  if(!els.length) return;
-  const newIds = [];
-  els.forEach(el=>{
-    const copy = JSON.parse(JSON.stringify(el));
-    copy.id = uid();
-    copy.x += 24; copy.y += 24;
-    if(copy.type==='vector'){ copy.points = copy.points.map(p=>({x:p.x+24, y:p.y+24})); }
-    copy.z = nextZ();
-    state.els.push(copy);
-    newIds.push(copy.id);
-  });
-  renderAll();
-  setSelection(newIds);
-  commit();
-}
-
-// ---------------- Pages ----------------
-// state.els / canvasHeight / canvasBg always mirror the *current* page; the
-// page object holds the authoritative copy, refreshed via syncPageFromState().
-// Slugs become file names and URLs, so keep them ASCII. A Japanese page name
-// falls back to page-N; the user can always type a slug by hand.
-function slugify(name, fallback){
-  const s = String(name||'').trim().toLowerCase()
-    .replace(/[^a-z0-9\- ]/g,'')
-    .replace(/\s+/g,'-')
-    .replace(/-+/g,'-')
-    .replace(/^-|-$/g,'');
-  return s || fallback || ('page-' + Date.now());
-}
-function newPage(name, opts){
-  opts = opts || {};
-  return {
-    id: 'p' + (state.idCounter++),
-    name: name || '新しいページ',
-    slug: opts.slug || slugify(name, 'page-' + state.idCounter),
-    parentId: opts.parentId || null,
-    inNav: opts.inNav !== false,
-    els: [],
-    canvasHeight: opts.canvasHeight || 1600,
-    canvasBg: opts.canvasBg || '#ffffff',
-    seo: { title:'', description:'', ogImage:'' },
+    assignIds();
+    decorate();
+    syncHeadFields();
+    renderPageList();
+    renderBlockList();
+    renderInspector();
+    renderColors();
+    historyReset();
   };
 }
-function currentPage(){ return state.pages.find(p=>p.id===state.currentPageId) || state.pages[0]; }
-function isHomePage(p){ return state.pages.indexOf(p) === 0; }
-function pageFileName(p){ return isHomePage(p) ? 'index.html' : (p.slug || p.id) + '.html'; }
-function syncPageFromState(){
-  const p = currentPage();
-  if(!p) return;
-  p.els = state.els;
-  p.canvasHeight = state.canvasHeight;
-  p.canvasBg = state.canvasBg;
+function assignIds(){
+  let n = 1;
+  elementChildren(state.root).forEach(el=>{
+    if(!el.hasAttribute('data-blk')) el.setAttribute('data-blk', 'b' + (n++) + '-' + Math.random().toString(36).slice(2,7));
+  });
 }
-function loadPageIntoState(p){
-  state.els = p.els;
-  state.canvasHeight = p.canvasHeight;
-  state.canvasBg = p.canvasBg;
+function findRootById(d){
+  let root = d.querySelector('main') || d.body;
+  for(let depth = 0; depth < 6; depth++){
+    const kids = elementChildren(root);
+    if(kids.length === 1 && elementChildren(kids[0]).length > 1){ root = kids[0]; continue; }
+    break;
+  }
+  return root;
+}
+function currentRaw(){
+  return state.doc ? '<!DOCTYPE html>' + state.doc.documentElement.outerHTML : '';
+}
+function currentPage(){ return state.pages.find(p=>p.id===state.currentPageId) || null; }
+function captureCurrent(){
+  const p = currentPage();
+  if(p && state.doc) p.html = currentRaw();
+}
+function syncHeadFields(){
+  const t = state.doc.querySelector('title');
+  $('docTitle').value = t ? t.textContent : '';
+  const md = state.doc.querySelector('meta[name=description]');
+  $('docDesc').value = md ? (md.getAttribute('content') || '') : '';
+}
+
+// ---------- pages ----------
+function slugFile(name, taken){
+  let base = String(name||'').trim().toLowerCase()
+    .replace(/[^a-z0-9\- ]/g,'').replace(/\s+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'')
+    .slice(0,32);
+  if(!base) base = 'page';
+  let file = base + '.html', i = 2;
+  while(taken.includes(file)){ file = base + '-' + (i++) + '.html'; }
+  return file;
+}
+// A blank page keeps the site's shell (head, header, nav, footer) and drops
+// the body sections, so a new page still looks like it belongs to the site.
+function blankFromCurrent(raw){
+  const d = parseHtml(raw);
+  const root = findRootById(d);
+  elementChildren(root).forEach(el=>{
+    const tag = el.tagName.toLowerCase();
+    const keep = tag==='header' || tag==='footer' || tag==='nav' || el.querySelector('nav');
+    if(!keep) el.remove();
+  });
+  const t = d.querySelector('title');
+  if(t) t.textContent = '新しいページ';
+  return '<!DOCTYPE html>' + d.documentElement.outerHTML;
+}
+function addPage(mode){
+  if(!state.pages.length){ flash('先にHTMLを読み込んでください', true); return; }
+  captureCurrent();
+  const label = mode==='dup' ? 'このページを複製して作る新しいページの名前' : '新しいページの名前';
+  const name = prompt(label, mode==='dup' ? (currentPage().name + ' のコピー') : '新しいページ');
+  if(name === null) return;
+  const taken = state.pages.map(p=>p.file);
+  const cur = currentPage();
+  const html = mode==='dup' ? cur.html : blankFromCurrent(cur.html);
+  const p = { id:newId(), name: name || '新しいページ', file: slugFile(name, taken), html };
+  state.pages.push(p);
+  state.currentPageId = p.id;
+  mountHtml(p.html);
+  flash('ページを追加しました: ' + p.file);
 }
 function switchPage(id){
   if(id === state.currentPageId) return;
-  const target = state.pages.find(p=>p.id===id);
-  if(!target) return;
-  if(state.drawingMode) cancelPenTool();
-  syncPageFromState();
+  captureCurrent();
+  const p = state.pages.find(x=>x.id===id);
+  if(!p) return;
   state.currentPageId = id;
-  loadPageIntoState(target);
-  setSelection([]);
-  syncCanvasBox();
-  const cbg = $('canvasBg'); if(cbg) cbg.value = state.canvasBg;
-  renderAll();
-  renderPages();
-  zoomToFit();
-  historyReset();
-}
-function addPage(parentId){
-  syncPageFromState();
-  const name = prompt(parentId ? '子ページの名前' : 'ページの名前', parentId ? '子ページ' : '新しいページ');
-  if(name === null) return;
-  const p = newPage(name || '新しいページ', { parentId: parentId || null });
-  // Keep children directly after their parent so the list reads as a tree.
-  if(parentId){
-    let idx = state.pages.findIndex(x=>x.id===parentId);
-    let j = idx + 1;
-    while(j < state.pages.length && state.pages[j].parentId === parentId) j++;
-    state.pages.splice(j, 0, p);
-  } else {
-    state.pages.push(p);
-  }
-  state.currentPageId = p.id;
-  loadPageIntoState(p);
-  setSelection([]);
-  syncCanvasBox();
-  renderAll();
-  renderPages();
-  zoomToFit();
-  historyReset();
+  mountHtml(p.html);
 }
 function renamePage(id){
   const p = state.pages.find(x=>x.id===id);
@@ -1461,1771 +547,661 @@ function renamePage(id){
   const name = prompt('ページ名', p.name);
   if(name === null) return;
   p.name = name || p.name;
-  p.slug = slugify(p.name, p.slug);
-  renderPages();
+  if(p.file !== 'index.html'){
+    p.file = slugFile(p.name, state.pages.filter(x=>x!==p).map(x=>x.file));
+  }
+  renderPageList();
 }
 function deletePage(id){
-  if(state.pages.length <= 1){ alert('最後の1ページは削除できません。'); return; }
+  if(state.pages.length <= 1){ flash('最後の1ページは削除できません', true); return; }
   const p = state.pages.find(x=>x.id===id);
   if(!p) return;
-  const kids = state.pages.filter(x=>x.parentId===id);
-  const msg = kids.length
-    ? `「${p.name}」と子ページ${kids.length}件を削除します。よろしいですか?`
-    : `「${p.name}」を削除します。よろしいですか?`;
-  if(!confirm(msg)) return;
-  const removeIds = [id].concat(kids.map(k=>k.id));
-  state.pages = state.pages.filter(x=>removeIds.indexOf(x.id) === -1);
-  if(removeIds.indexOf(state.currentPageId) > -1){
+  if(!confirm('ページ「' + p.name + '」を削除します。よろしいですか?')) return;
+  const wasCurrent = id === state.currentPageId;
+  state.pages = state.pages.filter(x=>x.id!==id);
+  if(state.pages.length && state.pages[0].file !== 'index.html') state.pages[0].file = 'index.html';
+  if(wasCurrent){
     state.currentPageId = state.pages[0].id;
-    loadPageIntoState(state.pages[0]);
-    setSelection([]);
-    syncCanvasBox();
-    renderAll();
-    zoomToFit();
-    historyReset();
+    mountHtml(state.pages[0].html);
+  } else {
+    renderPageList();
   }
-  renderPages();
+  flash('ページを削除しました');
 }
-function renderPages(){
+function renderPageList(){
   const list = $('pageList');
-  if(!list) return;
+  $('pageCount').textContent = state.pages.length;
+  if(!state.pages.length){
+    list.innerHTML = '<div class="empty" style="padding:14px 6px;">未読み込み</div>';
+    return;
+  }
   list.innerHTML = state.pages.map(p=>`
-    <div class="page-item ${p.id===state.currentPageId?'active':''} ${p.parentId?'child':''}" data-page="${p.id}">
-      <span class="pgname" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</span>
-      ${isHomePage(p)?'<span class="badge-group" title="トップページ">HOME</span>':''}
-      <button class="ltog" data-addchild="${p.id}" title="子ページを追加">${ICONS.plus}</button>
-      <button class="ltog" data-renpage="${p.id}" title="名前を変更">${ICONS.pencil}</button>
-      <button class="ltog" data-delpage="${p.id}" title="削除">${ICONS.trash}</button>
+    <div class="pg-item ${p.id===state.currentPageId?'active':''}" data-page="${p.id}">
+      <span class="pg-name" title="${escapeAttr(p.name)}">${escapeHtml(p.name)}</span>
+      <span class="pg-file">${escapeHtml(p.file)}</span>
+      <button class="blk-tog" data-renpg="${p.id}" title="名前を変更">${ICONS.pencil}</button>
+      <button class="blk-tog" data-delpg="${p.id}" title="削除">${ICONS.trash}</button>
     </div>`).join('');
-  list.querySelectorAll('.page-item').forEach(n=>n.addEventListener('click', (e)=>{
+  list.querySelectorAll('.pg-item').forEach(n=>n.addEventListener('click', (e)=>{
     if(e.target.closest('button')) return;
     switchPage(n.dataset.page);
   }));
-  list.querySelectorAll('[data-addchild]').forEach(b=>b.addEventListener('click', (e)=>{ e.stopPropagation(); addPage(b.dataset.addchild); }));
-  list.querySelectorAll('[data-renpage]').forEach(b=>b.addEventListener('click', (e)=>{ e.stopPropagation(); renamePage(b.dataset.renpage); }));
-  list.querySelectorAll('[data-delpage]').forEach(b=>b.addEventListener('click', (e)=>{ e.stopPropagation(); deletePage(b.dataset.delpage); }));
+  list.querySelectorAll('[data-renpg]').forEach(b=>b.addEventListener('click', e=>{ e.stopPropagation(); renamePage(b.dataset.renpg); }));
+  list.querySelectorAll('[data-delpg]').forEach(b=>b.addEventListener('click', e=>{ e.stopPropagation(); deletePage(b.dataset.delpg); }));
 }
 
-// ---------------- Responsive (device slots) ----------------
-// Every element keeps its live geometry on itself plus one saved slot per
-// device. Switching devices stashes the live values and loads the other slot,
-// so the rest of the editor keeps reading el.x / el.w untouched.
-const DEVICE_PROPS = ['x','y','w','h','fontSize','hidden'];
-function pickDeviceProps(el){
-  const o = {};
-  DEVICE_PROPS.forEach(k=>{ if(el[k] !== undefined) o[k] = el[k]; });
-  if(el.type==='vector' && el.points) o.points = el.points.map(p=>({x:p.x,y:p.y}));
-  return o;
-}
-function stashDevice(el, dev){ el[dev] = pickDeviceProps(el); }
-function loadDevice(el, dev){
-  const src = el[dev];
-  if(!src) return;
-  DEVICE_PROPS.forEach(k=>{ if(src[k] !== undefined) el[k] = src[k]; });
-  if(src.points) el.points = src.points.map(p=>({x:p.x,y:p.y}));
-}
-function syncDeviceFromState(){
-  state.pages.forEach(p=>{
-    const els = (p.id === state.currentPageId) ? state.els : p.els;
-    els.forEach(el=>stashDevice(el, state.device));
-  });
-}
-function setDevice(dev){
-  if(dev === state.device) return;
-  syncPageFromState();
-  // Stash current geometry, then load (or seed) the target device slot.
-  state.pages.forEach(p=>{
-    p.els.forEach(el=>{
-      stashDevice(el, state.device);
-      if(!el[dev]) el[dev] = pickDeviceProps(el);   // first visit inherits
-      loadDevice(el, dev);
-    });
-  });
-  state.device = dev;
-  state.canvasWidth = dev === 'sp' ? state.mobileWidth : state.desktopWidth;
-  setSelection([]);
-  syncCanvasBox();
-  renderAll();
-  zoomToFit();
-  document.querySelectorAll('[data-device]').forEach(b=>b.classList.toggle('active', b.dataset.device === dev));
-  historyReset();
-  flashSaveStatus(dev === 'sp' ? 'スマホ表示を編集中' : 'PC表示を編集中');
-}
-
-// ---------------- Color swatches / eyedropper ----------------
-function addSwatch(hex){
-  if(!hex) return;
-  hex = String(hex).toLowerCase();
-  state.swatches = [hex].concat(state.swatches.filter(c=>c !== hex)).slice(0, 12);
-}
-// Every colour input in the inspector gets a swatch strip and, where the
-// browser supports it, an eyedropper button.
-function enhanceColorInputs(){
-  inspector.querySelectorAll('input[type=color]').forEach(inp=>{
-    if(inp.dataset.enhanced) return;
-    inp.dataset.enhanced = '1';
-    const setColor = (hex)=>{
-      inp.value = hex;
-      inp.dispatchEvent(new Event('input', { bubbles:true }));
-      inp.dispatchEvent(new Event('change', { bubbles:true }));
+// Attach click/edit affordances to the live iframe DOM.
+function decorate(){
+  const d = state.doc;
+  if(!d) return;
+  elementChildren(state.root).forEach(el=>{
+    if(!el.hasAttribute('data-blk')) el.setAttribute('data-blk','b'+Math.random().toString(36).slice(2,8));
+    el.onclick = (e)=>{
+      if(e.target.closest('[data-edit-text]') || e.target.tagName === 'IMG') return;
+      e.preventDefault(); e.stopPropagation();
+      selectBlock(el.getAttribute('data-blk'));
     };
-    const tools = document.createElement('div');
-    tools.className = 'color-tools';
-    if(window.EyeDropper){
-      const b = document.createElement('button');
-      b.type = 'button'; b.className = 'mini-btn'; b.title = 'スポイトで画面から色を取得';
-      b.innerHTML = ICONS.eyedropper;
-      b.addEventListener('click', async ()=>{
-        try{
-          const res = await new window.EyeDropper().open();
-          addSwatch(res.sRGBHex);
-          setColor(res.sRGBHex);
-        }catch(err){ /* cancelled */ }
-      });
-      tools.appendChild(b);
-    }
-    state.swatches.forEach(c=>{
-      const s = document.createElement('button');
-      s.type = 'button'; s.className = 'swatch'; s.title = c;
-      s.style.background = c;
-      s.addEventListener('click', ()=>setColor(c));
-      tools.appendChild(s);
-    });
-    inp.insertAdjacentElement('afterend', tools);
-    inp.addEventListener('change', ()=>addSwatch(inp.value));
+    markEditable(el);
+  });
+  syncSelectionDom();
+}
+
+const TEXT_TAGS = ['H1','H2','H3','H4','H5','H6','P','LI','SPAN','A','TD','TH','BLOCKQUOTE','FIGCAPTION','BUTTON','LABEL','STRONG','EM','SMALL','DT','DD'];
+function markEditable(blockEl){
+  blockEl.querySelectorAll(TEXT_TAGS.join(',')).forEach(el=>{
+    // Only leaves: an element whose children are all inline formatting.
+    const hasBlockChild = [...el.children].some(c=>!['SPAN','A','STRONG','EM','B','I','SMALL','BR','CODE'].includes(c.tagName));
+    if(hasBlockChild) return;
+    if(!el.textContent.trim()) return;
+    el.setAttribute('data-edit-text','1');
+    el.setAttribute('contenteditable','true');
+    el.onblur = ()=>{ commit(); renderBlockList(); };
+    el.onkeydown = (e)=>{ if(e.key==='Escape') el.blur(); e.stopPropagation(); };
+    el.onclick = (e)=>e.stopPropagation();
+  });
+  blockEl.querySelectorAll('img').forEach(img=>{
+    img.onclick = (e)=>{
+      e.preventDefault(); e.stopPropagation();
+      selectBlock(blockEl.getAttribute('data-blk'));
+      replaceImage(img);
+    };
   });
 }
 
-// ---------------- Undo / redo ----------------
-// Snapshots of the editable document. commit() is called at the end of an
-// interaction (pointerup, change), never on every pointermove.
-const history = { stack: [], index: -1, limit: 80, muted: false };
+// ---------- blocks ----------
+function blocks(){ return state.root ? elementChildren(state.root) : []; }
+function blockById(id){ return blocks().find(b=>b.getAttribute('data-blk')===id) || null; }
 
-function historySnapshot(){
-  return JSON.stringify({
-    els: state.els,
-    canvasWidth: state.canvasWidth,
-    canvasHeight: state.canvasHeight,
-    canvasBg: state.canvasBg,
-  });
+function blockLabel(el){
+  const h = el.querySelector('h1,h2,h3,h4,h5,h6');
+  if(h && h.textContent.trim()) return h.textContent.trim().replace(/\s+/g,' ').slice(0,26);
+  const tag = el.tagName.toLowerCase();
+  const named = { header:'ヘッダー', nav:'ナビゲーション', footer:'フッター', aside:'サイドバー', form:'フォーム' };
+  if(named[tag]) return named[tag];
+  const t = el.textContent.trim().replace(/\s+/g,' ');
+  return t ? t.slice(0,26) : tag;
 }
-function historyReset(){
-  history.stack = [historySnapshot()];
-  history.index = 0;
-  updateHistoryButtons();
-}
-function commit(){
-  if(history.muted) return;
-  const snap = historySnapshot();
-  if(history.stack[history.index] === snap) return;
-  history.stack = history.stack.slice(0, history.index + 1);
-  history.stack.push(snap);
-  if(history.stack.length > history.limit) history.stack.shift();
-  history.index = history.stack.length - 1;
-  updateHistoryButtons();
-}
-function applySnapshot(snap){
-  const data = JSON.parse(snap);
-  history.muted = true;
-  state.els = data.els;
-  syncPageFromState();
-  state.canvasWidth = data.canvasWidth;
-  state.canvasHeight = data.canvasHeight;
-  state.canvasBg = data.canvasBg;
-  const keep = state.selectedIds.filter(id=>state.els.some(e=>e.id===id));
-  syncCanvasBox();
-  const cbg = $('canvasBg'); if(cbg) cbg.value = state.canvasBg;
-  renderAll();
-  setSelection(keep);
-  history.muted = false;
-  updateHistoryButtons();
-}
-function undo(){
-  if(history.index <= 0) return;
-  history.index--;
-  applySnapshot(history.stack[history.index]);
-  flashSaveStatus('元に戻しました');
-}
-function redo(){
-  if(history.index >= history.stack.length - 1) return;
-  history.index++;
-  applySnapshot(history.stack[history.index]);
-  flashSaveStatus('やり直しました');
-}
-function updateHistoryButtons(){
-  const u = $('btnUndo'), r = $('btnRedo');
-  if(u) u.disabled = history.index <= 0;
-  if(r) r.disabled = history.index >= history.stack.length - 1;
+function blockIcon(el){
+  const tag = el.tagName.toLowerCase();
+  if(tag==='nav' || el.querySelector('nav')) return ICONS.nav;
+  if(tag==='footer') return ICONS.foot;
+  if(tag==='header') return ICONS.hero;
+  if(el.querySelector('form,input,textarea')) return ICONS.form;
+  if(el.querySelectorAll('img').length >= 2) return ICONS.image;
+  if(el.querySelector('img')) return ICONS.image;
+  if(el.querySelectorAll('li').length >= 2) return ICONS.list;
+  return ICONS.text;
 }
 
-// ---------------- Clipboard ----------------
-let clipboard = [];
-function copySelection(){
-  const els = selectedEls();
-  if(!els.length) return;
-  clipboard = els.map(el=>JSON.parse(JSON.stringify(el)));
-  flashSaveStatus(clipboard.length + '個をコピーしました');
-}
-function cutSelection(){
-  if(!state.selectedIds.length) return;
-  copySelection();
-  deleteSelected();
-}
-function pasteClipboard(){
-  if(!clipboard.length) return;
-  const gidMap = {};
-  const newIds = [];
-  clipboard.forEach(src=>{
-    const copy = JSON.parse(JSON.stringify(src));
-    copy.id = uid();
-    copy.x += 24; copy.y += 24;
-    if(copy.type==='vector'){ copy.points = copy.points.map(p=>({x:p.x+24, y:p.y+24})); }
-    if(copy.groupId){
-      if(!gidMap[copy.groupId]) gidMap[copy.groupId] = 'g' + (state.idCounter++);
-      copy.groupId = gidMap[copy.groupId];
-    }
-    copy.z = nextZ();
-    state.els.push(copy);
-    newIds.push(copy.id);
+function renderBlockList(){
+  const list = $('blockList');
+  const bs = blocks();
+  $('blockCount').textContent = bs.length;
+  if(!bs.length){
+    list.innerHTML = '<div class="empty">まだ何も読み込んでいません。<br>「読み込む」からHTMLを取り込んでください。</div>';
+    return;
+  }
+  list.innerHTML = bs.map(el=>{
+    const id = el.getAttribute('data-blk');
+    const off = el.hasAttribute('data-blk-off');
+    return `<div class="blk-item ${id===state.selected?'active':''} ${off?'is-hidden':''}" data-id="${id}" draggable="true">
+      <span class="blk-ic">${blockIcon(el)}</span>
+      <span class="blk-name">${escapeHtml(blockLabel(el))}</span>
+      <button class="blk-tog" data-vis="${id}" title="${off?'表示する':'隠す'}">${off?ICONS.eyeOff:ICONS.eye}</button>
+      <span class="grip">${ICONS.grip}</span>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.blk-item').forEach(n=>{
+    n.addEventListener('click', (e)=>{ if(e.target.closest('[data-vis]')) return; selectBlock(n.dataset.id); });
+    attachDnd(n);
   });
-  // Paste again should offset further rather than stack on the same spot.
-  clipboard = clipboard.map(c=>{
-    const n = JSON.parse(JSON.stringify(c));
-    n.x += 24; n.y += 24;
-    if(n.type==='vector'){ n.points = n.points.map(p=>({x:p.x+24, y:p.y+24})); }
-    return n;
-  });
-  renderAll();
-  setSelection(newIds);
+  list.querySelectorAll('[data-vis]').forEach(b=>b.addEventListener('click', (e)=>{
+    e.stopPropagation(); toggleBlock(b.dataset.vis);
+  }));
+}
+
+function selectBlock(id){
+  state.selected = id;
+  syncSelectionDom();
+  renderBlockList();
+  renderInspector();
+  const el = blockById(id);
+  if(el && el.scrollIntoView) el.scrollIntoView({behavior:'smooth', block:'center'});
+}
+function syncSelectionDom(){
+  blocks().forEach(el=>el.classList.toggle('blk-sel', el.getAttribute('data-blk')===state.selected));
+}
+
+function moveBlock(id, dir){
+  const el = blockById(id);
+  if(!el) return;
+  if(dir < 0 && el.previousElementSibling) el.parentNode.insertBefore(el, el.previousElementSibling);
+  else if(dir > 0 && el.nextElementSibling) el.parentNode.insertBefore(el.nextElementSibling, el);
+  else return;
+  commit(); renderBlockList(); renderInspector();
+}
+function duplicateBlock(id){
+  const el = blockById(id);
+  if(!el) return;
+  const copy = el.cloneNode(true);
+  copy.setAttribute('data-blk','b'+Math.random().toString(36).slice(2,8));
+  copy.classList.remove('blk-sel');
+  el.parentNode.insertBefore(copy, el.nextSibling);
+  decorate();
   commit();
+  selectBlock(copy.getAttribute('data-blk'));
+  flash('ブロックを複製しました');
+}
+function deleteBlock(id){
+  const el = blockById(id);
+  if(!el) return;
+  if(!confirm('「' + blockLabel(el) + '」を削除します。よろしいですか?')) return;
+  el.remove();
+  if(state.selected === id) state.selected = null;
+  commit(); renderBlockList(); renderInspector();
+  flash('ブロックを削除しました');
+}
+function toggleBlock(id){
+  const el = blockById(id);
+  if(!el) return;
+  if(el.hasAttribute('data-blk-off')) el.removeAttribute('data-blk-off');
+  else el.setAttribute('data-blk-off','1');
+  commit(); renderBlockList(); renderInspector();
 }
 
-// ---------------- Groups ----------------
-function groupSelection(){
-  const els = selectedEls();
-  if(els.length < 2) return;
-  const gid = 'g' + (state.idCounter++);
-  els.forEach(el=>{ el.groupId = gid; });
-  setSelection(state.selectedIds);
-  renderLayers();
-  commit();
-  flashSaveStatus('グループ化しました');
+// drag & drop reorder
+let dragId = null;
+function clearMarks(){ $('blockList').querySelectorAll('.blk-item').forEach(n=>n.classList.remove('drop-before','drop-after')); }
+function attachDnd(node){
+  node.addEventListener('dragstart', (e)=>{
+    dragId = node.dataset.id; node.classList.add('dragging');
+    try{ e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', dragId); }catch(err){}
+  });
+  node.addEventListener('dragend', ()=>{ node.classList.remove('dragging'); dragId=null; clearMarks(); });
+  node.addEventListener('dragover', (e)=>{
+    if(!dragId || node.dataset.id===dragId) return;
+    e.preventDefault();
+    const r = node.getBoundingClientRect();
+    clearMarks();
+    node.classList.add((e.clientY - r.top) > r.height/2 ? 'drop-after' : 'drop-before');
+  });
+  node.addEventListener('dragleave', ()=>node.classList.remove('drop-before','drop-after'));
+  node.addEventListener('drop', (e)=>{
+    e.preventDefault();
+    if(!dragId || node.dataset.id===dragId){ clearMarks(); return; }
+    const r = node.getBoundingClientRect();
+    const after = (e.clientY - r.top) > r.height/2;
+    clearMarks();
+    const src = blockById(dragId), tgt = blockById(node.dataset.id);
+    if(!src || !tgt) return;
+    tgt.parentNode.insertBefore(src, after ? tgt.nextSibling : tgt);
+    commit(); renderBlockList();
+  });
 }
-function ungroupSelection(){
-  const els = selectedEls();
-  if(!els.length) return;
-  let changed = false;
-  els.forEach(el=>{ if(el.groupId){ delete el.groupId; changed = true; } });
-  if(!changed) return;
-  setSelection(state.selectedIds);
-  renderLayers();
-  commit();
-  flashSaveStatus('グループを解除しました');
+
+// ---------- images ----------
+let pendingImg = null;
+let pendingBg = null;
+function replaceImage(img){
+  pendingImg = img;
+  pendingBg = null;
+  $('imgInput').click();
 }
-// Selecting one member of a group selects the whole group.
-function expandGroups(ids){
+$('imgInput').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  $('imgInput').value = '';
+  if(!file || (!pendingImg && !pendingBg)) return;
+  flash('画像を処理中…');
+  const dataUrl = await new Promise(res=>{ const r=new FileReader(); r.onload=ev=>res(ev.target.result); r.readAsDataURL(file); });
+  let src = dataUrl;
+  if(state.user){
+    const up = await uploadImage(file);
+    if(up) src = up;
+  }
+  if(pendingBg){
+    pendingBg.style.backgroundImage = 'url("' + src + '")';
+    if(!pendingBg.style.backgroundSize) pendingBg.style.backgroundSize = 'cover';
+    if(!pendingBg.style.backgroundPosition) pendingBg.style.backgroundPosition = 'center';
+    pendingBg = null;
+    flash('背景画像を設定しました');
+  } else {
+    pendingImg.setAttribute('src', src);
+    pendingImg.removeAttribute('srcset');
+    pendingImg = null;
+    flash('画像を差し替えました');
+  }
+  commit(); renderInspector();
+});
+async function uploadImage(file){
+  try{
+    const res = await fetch('/api/uploads', { method:'POST', credentials:'same-origin', headers:{'content-type':file.type}, body:file });
+    if(!res.ok) return null;
+    const j = await res.json();
+    return j.url || null;
+  }catch(err){ return null; }
+}
+
+// ---------- colours ----------
+// Colours are read straight out of the document's own CSS text and inline
+// styles, so a swap rewrites the author's stylesheet rather than piling
+// overrides on top of it.
+const COLOR_RE = /#[0-9a-fA-F]{3}\b|#[0-9a-fA-F]{6}\b|rgba?\([^)]*\)/g;
+let colorIndex = {};
+
+function normColor(lit){
+  lit = lit.trim();
+  if(lit[0] === '#'){
+    let h = lit.slice(1).toLowerCase();
+    if(h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+    return '#' + h;
+  }
+  const m = lit.match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i);
+  if(!m) return null;
+  const hex = (n)=>Math.max(0,Math.min(255,Math.round(Number(n)))).toString(16).padStart(2,'0');
+  return '#' + hex(m[1]) + hex(m[2]) + hex(m[3]);
+}
+function styleCarriers(){
   const out = [];
-  ids.forEach(id=>{
-    const el = state.els.find(e=>e.id===id);
-    if(!el) return;
-    if(el.groupId){
-      state.els.forEach(e=>{ if(e.groupId===el.groupId && out.indexOf(e.id)===-1) out.push(e.id); });
-    } else if(out.indexOf(id)===-1){
-      out.push(id);
-    }
-  });
+  state.doc.querySelectorAll('style').forEach(el=>out.push({
+    get:()=>el.textContent, set:(v)=>{ el.textContent = v; }
+  }));
+  state.doc.querySelectorAll('[style]').forEach(el=>out.push({
+    get:()=>el.getAttribute('style') || '', set:(v)=>el.setAttribute('style', v)
+  }));
   return out;
 }
-
-// ---------------- Lock / visibility ----------------
-function isEditable(el){ return el && !el.locked && !el.hidden; }
-function toggleLock(id){
-  const el = state.els.find(e=>e.id===id);
-  if(!el) return;
-  el.locked = !el.locked;
-  if(el.locked) setSelection(state.selectedIds.filter(sid=>sid!==id));
-  renderAll();
-  commit();
-}
-function toggleHidden(id){
-  const el = state.els.find(e=>e.id===id);
-  if(!el) return;
-  el.hidden = !el.hidden;
-  if(el.hidden) setSelection(state.selectedIds.filter(sid=>sid!==id));
-  renderAll();
-  commit();
-}
-
-// ---------------- Multi-element align / distribute ----------------
-function selectionBBox(els){
-  const minX = Math.min.apply(null, els.map(e=>e.x));
-  const minY = Math.min.apply(null, els.map(e=>e.y));
-  const maxX = Math.max.apply(null, els.map(e=>e.x+e.w));
-  const maxY = Math.max.apply(null, els.map(e=>e.y+e.h));
-  return { minX, minY, maxX, maxY, cx:(minX+maxX)/2, cy:(minY+maxY)/2 };
-}
-function moveElTo(el, nx, ny){
-  const dx = nx - el.x, dy = ny - el.y;
-  if(el.type==='vector'){ el.points = el.points.map(p=>({x:p.x+dx, y:p.y+dy})); }
-  el.x = nx; el.y = ny;
-  updateNode(el);
-}
-function alignSelection(how){
-  const els = selectedEls();
-  if(els.length < 2) return;
-  const b = selectionBBox(els);
-  els.forEach(el=>{
-    if(how==='left') moveElTo(el, b.minX, el.y);
-    else if(how==='right') moveElTo(el, b.maxX - el.w, el.y);
-    else if(how==='hcenter') moveElTo(el, Math.round(b.cx - el.w/2), el.y);
-    else if(how==='top') moveElTo(el, el.x, b.minY);
-    else if(how==='bottom') moveElTo(el, el.x, b.maxY - el.h);
-    else if(how==='vmiddle') moveElTo(el, el.x, Math.round(b.cy - el.h/2));
+function collectColors(){
+  colorIndex = {};
+  if(!state.doc) return [];
+  styleCarriers().forEach(c=>{
+    (c.get().match(COLOR_RE) || []).forEach(lit=>{
+      const n = normColor(lit);
+      if(!n) return;
+      if(!colorIndex[n]) colorIndex[n] = { count:0, forms:new Set() };
+      colorIndex[n].count++;
+      colorIndex[n].forms.add(lit.trim());
+    });
   });
-  updateXYWHFields();
-  commit();
+  return Object.keys(colorIndex)
+    .sort((a,b)=>colorIndex[b].count - colorIndex[a].count)
+    .slice(0, 16);
 }
-function distributeSelection(axis){
-  const els = selectedEls();
-  if(els.length < 3) return;
-  if(axis==='h'){
-    els.sort((a,b)=>a.x-b.x);
-    const min = els[0].x, max = els[els.length-1].x + els[els.length-1].w;
-    const total = els.reduce((s,e)=>s+e.w, 0);
-    const gap = (max - min - total) / (els.length - 1);
-    let cur = min;
-    els.forEach(el=>{ moveElTo(el, Math.round(cur), el.y); cur += el.w + gap; });
-  } else {
-    els.sort((a,b)=>a.y-b.y);
-    const min = els[0].y, max = els[els.length-1].y + els[els.length-1].h;
-    const total = els.reduce((s,e)=>s+e.h, 0);
-    const gap = (max - min - total) / (els.length - 1);
-    let cur = min;
-    els.forEach(el=>{ moveElTo(el, el.x, Math.round(cur)); cur += el.h + gap; });
+function replaceColorEverywhere(norm, to){
+  const entry = colorIndex[norm];
+  if(!entry) return;
+  // Longest first so #ffffff is handled before #fff, and never let a short hex
+  // eat the front of a longer one.
+  const forms = [...entry.forms].sort((a,b)=>b.length-a.length);
+  styleCarriers().forEach(c=>{
+    let text = c.get();
+    forms.forEach(lit=>{
+      const re = lit[0]==='#'
+        ? new RegExp(lit.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '(?![0-9a-fA-F])', 'g')
+        : new RegExp(lit.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'g');
+      text = text.replace(re, to);
+    });
+    c.set(text);
+  });
+  commit();
+  renderColors();
+  flash(norm + ' を ' + to + ' に変更しました');
+}
+function renderColors(){
+  const host = $('colorList');
+  if(!host) return;
+  const list = collectColors();
+  if(!list.length){ host.innerHTML = '<div class="hint">色が見つかりません。</div>'; return; }
+  host.innerHTML = list.map(c=>
+    `<button class="sw" data-color="${c}" style="background:${c}" title="${c}（${colorIndex[c].count}箇所）"><span>${colorIndex[c].count}</span></button>`
+  ).join('');
+  host.querySelectorAll('[data-color]').forEach(b=>b.addEventListener('click', ()=>{
+    const from = b.dataset.color;
+    const input = document.createElement('input');
+    input.type = 'color';
+    input.value = from;
+    input.style.cssText = 'position:fixed;left:-9999px;';
+    document.body.appendChild(input);
+    input.addEventListener('change', ()=>{
+      if(input.value.toLowerCase() !== from) replaceColorEverywhere(from, input.value.toLowerCase());
+      input.remove();
+    });
+    input.click();
+  }));
+}
+
+// ---------- block styling ----------
+function computedOf(el){
+  const win = state.doc.defaultView;
+  return win ? win.getComputedStyle(el) : null;
+}
+function rgbToHex(v){
+  const n = normColor(v || '');
+  return n || '#ffffff';
+}
+function bgImageUrl(el){
+  const cs = computedOf(el);
+  const bi = cs ? cs.backgroundImage : '';
+  const m = (bi || '').match(/url\((['"]?)(.*?)\1\)/);
+  return m ? m[2] : '';
+}
+
+// ---------- inspector ----------
+function renderInspector(){
+  const insp = $('inspector');
+  const el = state.selected ? blockById(state.selected) : null;
+  if(!el){
+    insp.innerHTML = blocks().length
+      ? '<div class="empty">ブロックを選ぶと、その中の画像やリンクをまとめて編集できます。<br><br>プレビュー上の文字は直接クリックして書き換えられます。</div>'
+      : '<div class="empty">HTMLを読み込むと、ここに編集項目が表示されます。</div>';
+    return;
   }
-  updateXYWHFields();
-  commit();
-}
+  const off = el.hasAttribute('data-blk-off');
+  const imgs = [...el.querySelectorAll('img')];
+  const links = [...el.querySelectorAll('a[href]')];
 
-function duplicateElement(id){
-  const el = state.els.find(e=>e.id===id);
-  if(!el) return;
-  const copy = JSON.parse(JSON.stringify(el));
-  copy.id = uid();
-  copy.x += 24; copy.y += 24;
-  if(copy.type==='vector'){ copy.points = copy.points.map(p=>({x:p.x+24, y:p.y+24})); }
-  copy.z = nextZ();
-  state.els.push(copy);
-  renderAll();
-  selectElement(copy.id);
-  commit();
-}
-
-// ---------------- Inspector ----------------
-function fieldXYWH(el){
-  return `<div class="field">
-    <label>位置とサイズ</label>
-    <div class="xywh">
-      <div><label>X</label><input type="number" id="fx" value="${Math.round(el.x)}"></div>
-      <div><label>Y</label><input type="number" id="fy" value="${Math.round(el.y)}"></div>
-      <div><label>幅</label><input type="number" id="fw" value="${Math.round(el.w)}"></div>
-      <div><label>高さ</label><input type="number" id="fh" value="${Math.round(el.h)}"></div>
+  let html = `<div style="font-weight:600;font-size:13.5px;margin-bottom:4px;">${escapeHtml(blockLabel(el))}</div>
+    <div class="hint" style="margin-bottom:12px;">&lt;${el.tagName.toLowerCase()}&gt; ${off?'・非表示':''}</div>
+    <div class="row2">
+      <button class="btn" data-op="up">↑ 上へ</button>
+      <button class="btn" data-op="down">↓ 下へ</button>
     </div>
-  </div>`;
-}
-
-// Shared align palette. `attr` is the data-attribute the caller binds to.
-function alignGridHtml(attr, disabled){
-  const d = disabled ? ' disabled' : '';
-  return `<div class="align-grid">
-      <button ${attr}="left" title="左揃え"${d}>${ICONS.alignLeft}</button>
-      <button ${attr}="hcenter" title="水平方向中央に整列"${d}>${ICONS.alignHCenter}</button>
-      <button ${attr}="right" title="右揃え"${d}>${ICONS.alignRight}</button>
-      <button ${attr}="top" title="上揃え"${d}>${ICONS.alignTop}</button>
-      <button ${attr}="vmiddle" title="垂直方向中央に整列"${d}>${ICONS.alignVMiddle}</button>
-      <button ${attr}="bottom" title="下揃え"${d}>${ICONS.alignBottom}</button>
-    </div>`;
-}
-
-function orderFields(){
-  return `<div class="field"><label>重ね順</label>
-    <div class="order-grid">
-      <button data-order="front" title="最前面へ">${ICONS.orderFront}</button>
-      <button data-order="forward" title="前面へ">${ICONS.orderForward}</button>
-      <button data-order="backward" title="背面へ">${ICONS.orderBackward}</button>
-      <button data-order="back" title="最背面へ">${ICONS.orderBack}</button>
+    <div class="row2" style="margin-top:7px;">
+      <button class="btn" data-op="dup">複製</button>
+      <button class="btn" data-op="del">削除</button>
     </div>
-  </div>`;
-}
+    <button class="btn" data-op="vis" style="width:100%;justify-content:center;margin-top:7px;">${off?'表示に戻す':'このブロックを隠す'}</button>
+    <hr class="sep">`;
 
-function alignFields(){
-  return `<div class="field"><label>キャンバス内で整列</label>
-    ${alignGridHtml('data-align-el')}
-  </div>`;
-}
-
-function alignElement(el, how){
-  let nx = el.x, ny = el.y;
-  if(how==='left') nx = 0;
-  else if(how==='hcenter') nx = Math.round((state.canvasWidth - el.w) / 2);
-  else if(how==='right') nx = state.canvasWidth - el.w;
-  else if(how==='top') ny = 0;
-  else if(how==='vmiddle') ny = Math.round((state.canvasHeight - el.h) / 2);
-  else if(how==='bottom') ny = state.canvasHeight - el.h;
-  const dx = nx - el.x, dy = ny - el.y;
-  if(el.type==='vector'){ el.points = el.points.map(p=>({x:p.x+dx, y:p.y+dy})); }
-  el.x = nx; el.y = ny;
-  updateNode(el);
-  updateXYWHFields();
-  commit();
-}
-
-function textFields(el){
-  const fontOpts = FONTS.map(f=>`<option value="${f.value}" ${f.value===el.fontFamily?'selected':''}>${f.label}</option>`).join('');
-  return `
-  <div class="field"><label>フォント</label><select id="fFont">${fontOpts}</select></div>
-  <div class="field"><label id="lblSize">文字サイズ ${el.fontSize}px</label><input type="range" id="fSize" min="10" max="120" value="${el.fontSize}"></div>
-  <div class="field"><label>文字色</label><input type="color" id="fColor" value="${el.color}"></div>
-  <div class="field"><label>太さ</label><div class="seg">
-    <button data-w="400" class="${el.fontWeight=='400'?'active':''}">標準</button>
-    <button data-w="700" class="${el.fontWeight=='700'?'active':''}">太字</button>
-  </div></div>
-  <div class="field"><label>揃え</label><div class="seg">
-    <button data-align="left" class="${el.textAlign=='left'?'active':''}">左</button>
-    <button data-align="center" class="${el.textAlign=='center'?'active':''}">中央</button>
-    <button data-align="right" class="${el.textAlign=='right'?'active':''}">右</button>
-  </div></div>
-  <div class="field"><label>文字方向</label><div class="seg">
-    <button data-wm="horizontal" class="${el.writingMode!=='vertical'?'active':''}">横書き</button>
-    <button data-wm="vertical" class="${el.writingMode==='vertical'?'active':''}">縦書き</button>
-  </div></div>`;
-}
-
-function fillFields(el){
-  const f = el.fill;
-  let inner;
-  if(f.mode==='gradient'){
-    inner = `
-    <div class="field"><label>種類</label><div class="seg">
-      <button data-gradtype="linear" class="${f.gradType=='linear'?'active':''}">線形</button>
-      <button data-gradtype="radial" class="${f.gradType=='radial'?'active':''}">円形</button>
-    </div></div>
-    <div class="field"><label>開始色</label><input type="color" id="fGradFrom" value="${f.from}"></div>
-    <div class="field"><label>終了色</label><input type="color" id="fGradTo" value="${f.to}"></div>
-    ${f.gradType==='linear' ? `<div class="field"><label id="lblAngle">角度 ${f.angle}°</label><input type="range" id="fGradAngle" min="0" max="360" value="${f.angle}"></div>` : ''}`;
-  } else {
-    inner = `<div class="field"><label>塗りつぶし</label><input type="color" id="fFill" value="${f.color}"></div>`;
-  }
-  return `
-  <div class="field"><label>塗りのタイプ</label><div class="seg">
-    <button data-fillmode="solid" class="${f.mode=='solid'?'active':''}">単色</button>
-    <button data-fillmode="gradient" class="${f.mode=='gradient'?'active':''}">グラデーション</button>
-  </div></div>
-  ${inner}`;
-}
-
-function shapeFields(el){
-  const showFill = !(el.type==='vector' && el.closed===false);
-  let radiusField = '';
-  if(el.type==='rect'){
-    radiusField = `<div class="field"><label id="lblRadius">角丸 ${el.radius}px</label><input type="range" id="fRadius" min="0" max="100" value="${el.radius}"></div>`;
-  }
-  return (showFill ? fillFields(el) : '') + `
-  <div class="field"><label id="lblBW">線の太さ ${el.borderWidth}px</label><input type="range" id="fBW" min="0" max="20" value="${el.borderWidth}"></div>
-  <div class="field"><label>線の色</label><input type="color" id="fBColor" value="${el.borderColor||'#000000'}"></div>
-  ${radiusField}`;
-}
-
-function embedFields(el){
-  return `
-  <div class="field"><label>埋め込みHTML(YouTube・Googleマップ等)</label>
-    <textarea id="fEmbed" placeholder="&lt;iframe src=&quot;...&quot;&gt;&lt;/iframe&gt;">${escapeHtml(el.html||'')}</textarea>
-    <div style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.6;">
-      編集中は実行されず、書き出し・公開したページでのみ動作します。
-    </div>
-  </div>`;
-}
-
-function imageFields(el){
-  return `
-  <div class="field"><button class="btn" id="fReplaceImg" style="width:100%;">画像を差し替え</button></div>
-  <div class="field"><label>フィット方法</label><div class="seg">
-    <button data-fit="cover" class="${el.objectFit=='cover'?'active':''}">切り抜き</button>
-    <button data-fit="contain" class="${el.objectFit=='contain'?'active':''}">全体表示</button>
-  </div></div>
-  <div class="field"><label id="lblRadius">角丸 ${el.radius||0}px</label><input type="range" id="fRadius" min="0" max="100" value="${el.radius||0}"></div>`;
-}
-
-function animFields(el){
-  const animOpts = ANIMS.map(a=>`<option value="${a.value}" ${a.value===el.anim.type?'selected':''}>${a.label}</option>`).join('');
-  return `<hr class="sep">
-  <div class="field"><label>アニメーション</label><select id="fAnimType">${animOpts}</select></div>
-  <div class="field"><label>再生タイミング</label><div class="seg">
-    <button data-trig="scroll" class="${el.anim.trigger=='scroll'?'active':''}">スクロール時</button>
-    <button data-trig="load" class="${el.anim.trigger=='load'?'active':''}">読み込み時</button>
-  </div></div>
-  <div class="field"><label id="lblDur">長さ ${el.anim.duration}ms</label><input type="range" id="fAnimDur" min="200" max="2000" step="100" value="${el.anim.duration}"></div>
-  <div class="field"><label id="lblDelay">遅延 ${el.anim.delay}ms</label><input type="range" id="fAnimDelay" min="0" max="2000" step="100" value="${el.anim.delay}"></div>`;
-}
-
-function renderMultiInspector(){
-  const n = state.selectedIds.length;
-  const canDist = n >= 3;
-  inspector.innerHTML = `
-    <div class="multi-head">${n}個の要素を選択中</div>
-    <div class="field"><label>オブジェクトの整列</label>
-      ${alignGridHtml('data-msalign')}
-    </div>
-    <div class="field"><label>等間隔に分布${canDist?'':'(3個以上で有効)'}</label>
-      <div class="dist-grid">
-        <button data-msdist="h" title="水平方向等間隔に分布"${canDist?'':' disabled'}>${ICONS.distH}</button>
-        <button data-msdist="v" title="垂直方向等間隔に分布"${canDist?'':' disabled'}>${ICONS.distV}</button>
+  const cs = computedOf(el);
+  const bgUrl = bgImageUrl(el);
+  html += `<div class="field"><label>このブロックの見た目</label>
+    <div class="row2">
+      <div>
+        <div class="hint" style="margin-bottom:4px;">背景色</div>
+        <input type="color" id="blkBg" value="${rgbToHex(cs?cs.backgroundColor:'')}" style="width:100%;height:30px;padding:2px;background:var(--bg-panel-2);border:1px solid var(--border);border-radius:6px;">
+      </div>
+      <div>
+        <div class="hint" style="margin-bottom:4px;">文字色</div>
+        <input type="color" id="blkFg" value="${rgbToHex(cs?cs.color:'')}" style="width:100%;height:30px;padding:2px;background:var(--bg-panel-2);border:1px solid var(--border);border-radius:6px;">
       </div>
     </div>
-    ${orderFields()}
-    <hr class="sep">
-    <div class="row-actions">
-      <button class="btn" data-msact="dup">複製</button>
-      <button class="btn" data-msact="del">削除</button>
-    </div>`;
-  inspector.querySelectorAll('[data-msalign]').forEach(b=>b.addEventListener('click', ()=>alignSelection(b.dataset.msalign)));
-  inspector.querySelectorAll('[data-msdist]').forEach(b=>b.addEventListener('click', ()=>{ if(!b.disabled) distributeSelection(b.dataset.msdist); }));
-  inspector.querySelectorAll('[data-order]').forEach(b=>b.addEventListener('click', ()=>changeOrderSelected(b.dataset.order)));
-  inspector.querySelectorAll('[data-msact]').forEach(b=>b.addEventListener('click', ()=>{
-    if(b.dataset.msact==='dup') duplicateSelected();
-    else if(b.dataset.msact==='del') deleteSelected();
-  }));
-}
-
-function renderInspector(){
-  if(state.selectedIds.length > 1){ renderMultiInspector(); return; }
-  const el = state.els.find(e=>e.id===state.selectedId);
-  if(!el){
-    inspector.innerHTML = '<div class="empty-state">要素をクリックして選択してください。<br>ドラッグで移動、右下の■で拡大縮小できます。<br><br>Shift+クリックで複数選択、空白をドラッグで範囲選択できます。</div>';
-    return;
-  }
-  let html = fieldXYWH(el) + alignFields() + '<hr class="sep">';
-  if(el.type==='text') html += textFields(el);
-  else if(el.type==='rect' || el.type==='ellipse' || el.type==='vector') html += shapeFields(el);
-  else if(el.type==='image') html += imageFields(el);
-  else if(el.type==='embed') html += embedFields(el);
-  html += animFields(el);
-  html += '<hr class="sep">' + orderFields();
-  html += `<div class="row-actions">
-    <button class="btn" data-act="dup">複製</button>
-    <button class="btn" data-act="del">削除</button>
-  </div>`;
-  inspector.innerHTML = html;
-  bindInspectorEvents(el);
-  enhanceColorInputs();
-}
-
-function bindFillEvents(el){
-  const bind = (id, evt, fn)=>{ const n=$(id); if(n) n.addEventListener(evt, fn); };
-  inspector.querySelectorAll('[data-fillmode]').forEach(b=>b.addEventListener('click', ()=>{
-    el.fill.mode = b.dataset.fillmode; updateNode(el); renderInspector();
-  }));
-  if(el.fill.mode==='gradient'){
-    inspector.querySelectorAll('[data-gradtype]').forEach(b=>b.addEventListener('click', ()=>{
-      el.fill.gradType = b.dataset.gradtype; updateNode(el); renderInspector();
-    }));
-    bind('fGradFrom','input', e=>{ el.fill.from=e.target.value; updateNode(el); });
-    bind('fGradTo','input', e=>{ el.fill.to=e.target.value; updateNode(el); });
-    bind('fGradAngle','input', e=>{ el.fill.angle=Number(e.target.value); updateNode(el); const l=$('lblAngle'); if(l) l.textContent='角度 '+el.fill.angle+'°'; });
-  } else {
-    bind('fFill','input', e=>{ el.fill.color=e.target.value; updateNode(el); });
-  }
-}
-
-function bindInspectorEvents(el){
-  const bind = (id, evt, fn)=>{ const n=$(id); if(n) n.addEventListener(evt, fn); };
-
-  bind('fx','input', e=>{
-    const newX = Number(e.target.value)||0;
-    if(el.type==='vector'){ const dx=newX-el.x; el.points = el.points.map(p=>({x:p.x+dx,y:p.y})); }
-    el.x = newX; updateNode(el);
-  });
-  bind('fy','input', e=>{
-    const newY = Number(e.target.value)||0;
-    if(el.type==='vector'){ const dy=newY-el.y; el.points = el.points.map(p=>({x:p.x,y:p.y+dy})); }
-    el.y = newY; updateNode(el);
-  });
-  bind('fw','input', e=>{
-    const newW = Math.max(10,Number(e.target.value)||10);
-    if(el.type==='vector'){ const s=newW/el.w; el.points = el.points.map(p=>({x: el.x+(p.x-el.x)*s, y:p.y})); }
-    el.w = newW; updateNode(el);
-  });
-  bind('fh','input', e=>{
-    const newH = Math.max(10,Number(e.target.value)||10);
-    if(el.type==='vector'){ const s=newH/el.h; el.points = el.points.map(p=>({x:p.x, y: el.y+(p.y-el.y)*s})); }
-    el.h = newH; updateNode(el);
-  });
-
-  if(el.type==='text'){
-    bind('fFont','change', e=>{ el.fontFamily=e.target.value; updateNode(el); });
-    bind('fSize','input', e=>{ el.fontSize=Number(e.target.value); updateNode(el); const l=$('lblSize'); if(l) l.textContent='文字サイズ '+el.fontSize+'px'; });
-    bind('fColor','input', e=>{ el.color=e.target.value; updateNode(el); });
-    inspector.querySelectorAll('[data-w]').forEach(b=>b.addEventListener('click', ()=>{
-      el.fontWeight=b.dataset.w; updateNode(el);
-      inspector.querySelectorAll('[data-w]').forEach(x=>x.classList.toggle('active', x===b));
-    }));
-    inspector.querySelectorAll('[data-align]').forEach(b=>b.addEventListener('click', ()=>{
-      el.textAlign=b.dataset.align; updateNode(el);
-      inspector.querySelectorAll('[data-align]').forEach(x=>x.classList.toggle('active', x===b));
-    }));
-    inspector.querySelectorAll('[data-wm]').forEach(b=>b.addEventListener('click', ()=>{
-      el.writingMode=b.dataset.wm; updateNode(el);
-      inspector.querySelectorAll('[data-wm]').forEach(x=>x.classList.toggle('active', x===b));
-    }));
-  } else if(el.type==='rect' || el.type==='ellipse' || el.type==='vector'){
-    const showFill = !(el.type==='vector' && el.closed===false);
-    if(showFill) bindFillEvents(el);
-    bind('fBW','input', e=>{ el.borderWidth=Number(e.target.value); updateNode(el); const l=$('lblBW'); if(l) l.textContent='線の太さ '+el.borderWidth+'px'; });
-    bind('fBColor','input', e=>{ el.borderColor=e.target.value; updateNode(el); });
-    if(el.type==='rect'){
-      bind('fRadius','input', e=>{ el.radius=Number(e.target.value); updateNode(el); const l=$('lblRadius'); if(l) l.textContent='角丸 '+el.radius+'px'; });
-    }
-  } else if(el.type==='embed'){
-    bind('fEmbed','input', e=>{ el.html = e.target.value; updateNode(el); });
-  } else if(el.type==='image'){
-    bind('fReplaceImg','click', ()=>{ pendingReplaceId = el.id; imageInput.click(); });
-    inspector.querySelectorAll('[data-fit]').forEach(b=>b.addEventListener('click', ()=>{
-      el.objectFit=b.dataset.fit; updateNode(el);
-      inspector.querySelectorAll('[data-fit]').forEach(x=>x.classList.toggle('active', x===b));
-    }));
-    bind('fRadius','input', e=>{ el.radius=Number(e.target.value); updateNode(el); const l=$('lblRadius'); if(l) l.textContent='角丸 '+el.radius+'px'; });
-  }
-
-  bind('fAnimType','change', e=>{ el.anim.type=e.target.value; });
-  inspector.querySelectorAll('[data-trig]').forEach(b=>b.addEventListener('click', ()=>{
-    el.anim.trigger=b.dataset.trig;
-    inspector.querySelectorAll('[data-trig]').forEach(x=>x.classList.toggle('active', x===b));
-  }));
-  bind('fAnimDur','input', e=>{ el.anim.duration=Number(e.target.value); const l=$('lblDur'); if(l) l.textContent='長さ '+el.anim.duration+'ms'; });
-  bind('fAnimDelay','input', e=>{ el.anim.delay=Number(e.target.value); const l=$('lblDelay'); if(l) l.textContent='遅延 '+el.anim.delay+'ms'; });
-
-  inspector.querySelectorAll('[data-align-el]').forEach(b=>b.addEventListener('click', ()=>{
-    alignElement(el, b.dataset.alignEl);
-  }));
-
-  inspector.querySelectorAll('[data-order]').forEach(b=>b.addEventListener('click', ()=>changeOrderSelected(b.dataset.order)));
-
-  inspector.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click', ()=>{
-    const act = b.dataset.act;
-    if(act==='dup'){ duplicateElement(el.id); }
-    if(act==='del'){ deleteElement(el.id); }
-  }));
-}
-
-// ---------------- Canvas-level interactions ----------------
-pageCanvas.addEventListener('pointerdown', (e)=>{
-  if(state.drawingMode){
-    if(e.target===pageCanvas || e.target===drawOverlay){
-      const rect = pageCanvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / state.zoom, y = (e.clientY - rect.top) / state.zoom;
-      if(state.tempPoints.length>=3){
-        const first = state.tempPoints[0];
-        if(Math.hypot(x-first.x, y-first.y) < 12){ finishPenPath(true); return; }
-      }
-      addPenPoint(x,y);
-    }
-    return;
-  }
-  if(e.target===pageCanvas) startMarquee(e);
-});
-
-function startMarquee(e){
-  const rect = pageCanvas.getBoundingClientRect();
-  const sx = (e.clientX - rect.left) / state.zoom, sy = (e.clientY - rect.top) / state.zoom;
-  const additive = e.shiftKey || e.ctrlKey || e.metaKey;
-  const box = document.createElement('div');
-  box.className = 'marquee';
-  pageCanvas.insertBefore(box, resizeH);
-  let moved = false, curX = sx, curY = sy;
-  try{ pageCanvas.setPointerCapture(e.pointerId); }catch(err){}
-  function onMove(ev){
-    curX = (ev.clientX - rect.left) / state.zoom;
-    curY = (ev.clientY - rect.top) / state.zoom;
-    const x = Math.min(sx,curX), y = Math.min(sy,curY), w = Math.abs(curX-sx), h = Math.abs(curY-sy);
-    if(w > 3 || h > 3) moved = true;
-    box.style.left = x+'px'; box.style.top = y+'px'; box.style.width = w+'px'; box.style.height = h+'px';
-  }
-  function onUp(ev){
-    try{ pageCanvas.releasePointerCapture(ev.pointerId); }catch(err){}
-    pageCanvas.removeEventListener('pointermove', onMove);
-    pageCanvas.removeEventListener('pointerup', onUp);
-    box.remove();
-    if(moved){
-      const x = Math.min(sx,curX), y = Math.min(sy,curY), w = Math.abs(curX-sx), h = Math.abs(curY-sy);
-      const hit = state.els.filter(el=> el.x < x+w && el.x+el.w > x && el.y < y+h && el.y+el.h > y).map(el=>el.id);
-      if(additive){
-        const set = state.selectedIds.slice();
-        hit.forEach(id=>{ if(set.indexOf(id)===-1) set.push(id); });
-        setSelection(set);
-      } else {
-        setSelection(hit);
-      }
-    } else if(!additive){
-      deselectAll();
-    }
-  }
-  pageCanvas.addEventListener('pointermove', onMove);
-  pageCanvas.addEventListener('pointerup', onUp);
-}
-
-pageCanvas.addEventListener('dblclick', ()=>{
-  if(state.drawingMode) finishPenPath(true);
-});
-
-document.addEventListener('keydown', (e)=>{
-  if(state.drawingMode){
-    if(e.key==='Escape'){ cancelPenTool(); return; }
-    if(e.key==='Enter'){ finishPenPath(true); return; }
-    if(e.key==='Backspace'){ e.preventDefault(); state.tempPoints.pop(); renderPenPreview(); return; }
-    return;
-  }
-  if(e.target.isContentEditable) return;
-  const tag = (e.target.tagName||'').toUpperCase();
-  if(['INPUT','TEXTAREA','SELECT'].includes(tag)) return;
-  const mod = e.ctrlKey || e.metaKey;
-  const key = (e.key || '').toLowerCase();
-
-  if(mod && key==='z'){
-    e.preventDefault();
-    if(e.shiftKey) redo(); else undo();
-    return;
-  }
-  if(mod && key==='y'){ e.preventDefault(); redo(); return; }
-  if(mod && key==='c'){ e.preventDefault(); copySelection(); return; }
-  if(mod && key==='x'){ e.preventDefault(); cutSelection(); return; }
-  if(mod && key==='v'){ e.preventDefault(); pasteClipboard(); return; }
-  if(mod && key==='d'){ e.preventDefault(); duplicateSelected(); commit(); return; }
-  if(mod && key==='g'){
-    e.preventDefault();
-    if(e.shiftKey) ungroupSelection(); else groupSelection();
-    return;
-  }
-  if(mod && key==='a'){
-    e.preventDefault();
-    setSelection(state.els.filter(isEditable).map(el=>el.id));
-    return;
-  }
-  if((e.key==='Delete' || e.key==='Backspace') && state.selectedIds.length){
-    e.preventDefault();
-    deleteSelected();
-    commit();
-    return;
-  }
-  if(e.key==='Escape' && state.selectedIds.length){
-    deselectAll();
-    return;
-  }
-  if(state.selectedIds.length && ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){
-    e.preventDefault();
-    const step = e.shiftKey ? 10 : 1;
-    let dx = 0, dy = 0;
-    if(e.key==='ArrowLeft') dx = -step;
-    else if(e.key==='ArrowRight') dx = step;
-    else if(e.key==='ArrowUp') dy = -step;
-    else if(e.key==='ArrowDown') dy = step;
-    selectedEls().forEach(el=>{ moveElTo(el, el.x+dx, el.y+dy); });
-    updateXYWHFields();
-    commit();
-    return;
-  }
-});
-
-resizeH.addEventListener('pointerdown', (e)=>{
-  e.stopPropagation();
-  const startY = e.clientY;
-  const origH = state.canvasHeight;
-  try{ resizeH.setPointerCapture(e.pointerId); }catch(err){}
-  function onMove(ev){
-    state.canvasHeight = Math.max(400, origH + (ev.clientY - startY) / state.zoom);
-    pageCanvas.style.height = state.canvasHeight+'px';
-    pageScaler.style.height = (state.canvasHeight * state.zoom) + 'px';
-  }
-  function onUp(ev){
-    try{ resizeH.releasePointerCapture(ev.pointerId); }catch(err){}
-    resizeH.removeEventListener('pointermove', onMove);
-    resizeH.removeEventListener('pointerup', onUp);
-    commit();
-  }
-  resizeH.addEventListener('pointermove', onMove);
-  resizeH.addEventListener('pointerup', onUp);
-});
-
-document.querySelectorAll('.add-btn[data-add]').forEach(btn=>{
-  const type = btn.dataset.add;
-  btn.addEventListener('click', ()=>{
-    if(state.drawingMode) cancelPenTool();
-    if(type==='image'){ pendingReplaceId=null; imageInput.click(); }
-    else addElement(type);
-  });
-});
-
-document.querySelectorAll('[data-vec]').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    if(state.drawingMode) cancelPenTool();
-    addVectorPreset(btn.dataset.vec);
-  });
-});
-
-$('btnPenTool').addEventListener('click', ()=>{
-  if(state.drawingMode) cancelPenTool();
-  else startPenTool();
-});
-
-// Images are uploaded to R2 when signed in, so the project JSON only stores a
-// short URL. Signed-out users fall back to inlining the data URL as before.
-async function uploadImage(file){
-  if(!cloud.user) return null;
-  try{
-    const res = await fetch('/api/uploads', {
-      method:'POST',
-      credentials:'same-origin',
-      headers:{ 'content-type': file.type },
-      body: file,
-    });
-    if(res.status === 401){ cloud.user = null; renderAccount(); return null; }
-    const j = await res.json().catch(()=>({}));
-    if(!res.ok){
-      flashSaveStatus(j.message || '画像のアップロードに失敗しました', true);
-      return null;
-    }
-    return j.url || null;
-  }catch(err){
-    console.error(err);
-    return null;
-  }
-}
-
-imageInput.addEventListener('change', async (e)=>{
-  const file = e.target.files[0];
-  imageInput.value = '';
-  if(!file) return;
-
-  const dataUrl = await new Promise((resolve, reject)=>{
-    const r = new FileReader();
-    r.onload = ev=>resolve(ev.target.result);
-    r.onerror = reject;
-    r.readAsDataURL(file);
-  }).catch(()=>null);
-  if(!dataUrl) return;
-
-  const dims = await new Promise(resolve=>{
-    const probe = new Image();
-    probe.onload = ()=>resolve({ w: probe.naturalWidth, h: probe.naturalHeight });
-    probe.onerror = ()=>resolve({ w:0, h:0 });
-    probe.src = dataUrl;
-  });
-
-  flashSaveStatus('画像を処理中…');
-  const uploaded = await uploadImage(file);
-  const src = uploaded || dataUrl;
-
-  if(pendingReplaceId){
-    const el = state.els.find(x=>x.id===pendingReplaceId);
-    if(el){
-      el.src = src;
-      const node = $(el.id);
-      const img = node ? node.querySelector('img') : null;
-      if(img) img.src = src;
-      commit();
-    }
-    pendingReplaceId = null;
-  } else {
-    addImageElement(src, dims.w, dims.h);
-  }
-  flashSaveStatus(uploaded ? '画像をクラウドに保存しました' : '画像を追加しました');
-});
-
-$('canvasBg').addEventListener('input', (e)=>{
-  state.canvasBg = e.target.value;
-  pageCanvas.style.background = state.canvasBg;
-});
-$('canvasBg').addEventListener('change', commit);
-
-// ---------------- Page settings / SEO modal ----------------
-function openPageSettings(){
-  syncPageFromState();
-  const p = currentPage();
-  const nav = state.site.nav;
-  const parentOpts = state.pages
-    .filter(x=>x.id !== p.id && !x.parentId)
-    .map(x=>`<option value="${x.id}" ${p.parentId===x.id?'selected':''}>${escapeHtml(x.name)}</option>`).join('');
-  $('pageModalBody').innerHTML = `
-    <div class="field"><label>ページ名</label><input type="text" id="pgName" value="${escapeHtml(p.name)}"></div>
-    <div class="field"><label>URL(スラッグ)</label><input type="text" id="pgSlug" value="${escapeHtml(p.slug)}">
-      <div style="font-size:11px;color:var(--text-muted);margin-top:5px;">書き出し名: ${escapeHtml(pageFileName(p))}</div></div>
-    <div class="field"><label>親ページ</label>
-      <select id="pgParent"><option value="">なし(トップ階層)</option>${parentOpts}</select></div>
-    <div class="field"><label>ナビゲーションに表示</label>
-      <div class="seg">
-        <button data-nav-in="1" class="${p.inNav!==false?'active':''}">表示する</button>
-        <button data-nav-in="0" class="${p.inNav===false?'active':''}">隠す</button>
-      </div></div>
-    <hr class="sep">
-    <div class="field"><label>SEO: タイトル</label><input type="text" id="seoTitle" value="${escapeHtml(p.seo.title||'')}" placeholder="${escapeHtml(p.name)}"></div>
-    <div class="field"><label>SEO: 説明文(description)</label><textarea id="seoDesc" placeholder="検索結果に表示される説明文">${escapeHtml(p.seo.description||'')}</textarea></div>
-    <div class="field"><label>OGP画像のURL</label><input type="text" id="seoOg" value="${escapeHtml(p.seo.ogImage||'')}" placeholder="https://..."></div>
-    <hr class="sep">
-    <div class="field"><label>ナビゲーションバー(サイト共通)</label>
-      <div class="seg">
-        <button data-navon="1" class="${nav.enabled?'active':''}">表示する</button>
-        <button data-navon="0" class="${!nav.enabled?'active':''}">表示しない</button>
-      </div></div>
-    <div class="field"><label>ナビの背景色</label><input type="color" id="navBg" value="${nav.bg}"></div>
-    <div class="field"><label>ナビの文字色</label><input type="color" id="navColor" value="${nav.color}"></div>`;
-  $('pageModal').classList.add('open');
-
-  const bind = (id, evt, fn)=>{ const n=$(id); if(n) n.addEventListener(evt, fn); };
-  bind('pgName','input', e=>{ p.name = e.target.value; renderPages(); });
-  bind('pgSlug','input', e=>{ p.slug = slugify(e.target.value, p.id); });
-  bind('pgParent','change', e=>{ p.parentId = e.target.value || null; renderPages(); });
-  bind('seoTitle','input', e=>{ p.seo.title = e.target.value; });
-  bind('seoDesc','input', e=>{ p.seo.description = e.target.value; });
-  bind('seoOg','input', e=>{ p.seo.ogImage = e.target.value; });
-  bind('navBg','input', e=>{ state.site.nav.bg = e.target.value; });
-  bind('navColor','input', e=>{ state.site.nav.color = e.target.value; });
-  $('pageModalBody').querySelectorAll('[data-nav-in]').forEach(b=>b.addEventListener('click', ()=>{
-    p.inNav = b.dataset.navIn === '1';
-    $('pageModalBody').querySelectorAll('[data-nav-in]').forEach(x=>x.classList.toggle('active', x===b));
-  }));
-  $('pageModalBody').querySelectorAll('[data-navon]').forEach(b=>b.addEventListener('click', ()=>{
-    state.site.nav.enabled = b.dataset.navon === '1';
-    $('pageModalBody').querySelectorAll('[data-navon]').forEach(x=>x.classList.toggle('active', x===b));
-  }));
-}
-$('btnPageSettings').addEventListener('click', openPageSettings);
-$('btnAddPage').addEventListener('click', ()=>addPage(null));
-$('pageModalClose').addEventListener('click', ()=>$('pageModal').classList.remove('open'));
-$('pageModal').addEventListener('click', (e)=>{ if(e.target === $('pageModal')) $('pageModal').classList.remove('open'); });
-document.querySelectorAll('[data-device]').forEach(b=>b.addEventListener('click', ()=>setDevice(b.dataset.device)));
-
-// ---------------- History / snap controls ----------------
-// Catch-all: any finished inspector interaction becomes one history entry.
-// commit() de-duplicates identical snapshots, so this never adds noise.
-inspector.addEventListener('change', ()=>commit());
-inspector.addEventListener('click', (e)=>{ if(e.target.closest('button')) commit(); });
-
-$('btnUndo').addEventListener('click', undo);
-$('btnRedo').addEventListener('click', redo);
-$('btnSnap').addEventListener('click', ()=>{
-  state.snap = !state.snap;
-  $('btnSnap').classList.toggle('toggled', state.snap);
-  if(!state.snap) hideGuides();
-  flashSaveStatus(state.snap ? 'スナップ:オン' : 'スナップ:オフ');
-});
-
-// ---------------- Zoom controls ----------------
-$('zoomIn').addEventListener('click', ()=>setZoom(state.zoom * 1.2, true));
-$('zoomOut').addEventListener('click', ()=>setZoom(state.zoom / 1.2, true));
-$('zoomFit').addEventListener('click', zoomToFit);
-$('zoomLabel').addEventListener('click', ()=>setZoom(1, true));
-canvasArea.addEventListener('wheel', (e)=>{
-  if(e.ctrlKey || e.metaKey){
-    e.preventDefault();
-    setZoom(state.zoom * (e.deltaY < 0 ? 1.1 : 0.9), true);
-  }
-}, { passive:false });
-window.addEventListener('resize', ()=>{ if(state.autoFit) zoomToFit(); });
-
-$('btnToggleRail').addEventListener('click', ()=>{ railEl.classList.toggle('open'); inspector.classList.remove('open'); });
-$('btnToggleInspector').addEventListener('click', ()=>{ inspector.classList.toggle('open'); railEl.classList.remove('open'); });
-
-$('btnPreview').addEventListener('click', ()=>{
-  const map = {'fade-in':'kfFadeIn','slide-up':'kfSlideUp','slide-down':'kfSlideDown','slide-left':'kfSlideLeft','slide-right':'kfSlideRight','zoom-in':'kfZoomIn'};
-  state.els.forEach(el=>{
-    if(el.anim.type==='none') return;
-    const node = $(el.id);
-    if(!node) return;
-    node.style.animation = 'none';
-    void node.offsetWidth;
-    node.style.animation = map[el.anim.type]+' '+el.anim.duration+'ms ease '+el.anim.delay+'ms both';
-  });
-});
-
-// ---------------- Export ----------------
-function dataURLtoBlob(dataurl){
-  const arr = dataurl.split(',');
-  const mimeMatch = arr[0].match(/:(.*?);/);
-  const mime = mimeMatch ? mimeMatch[1] : 'image/png';
-  const bstr = atob(arr[1]);
-  let n = bstr.length;
-  const u8arr = new Uint8Array(n);
-  while(n--){ u8arr[n] = bstr.charCodeAt(n); }
-  return new Blob([u8arr], {type:mime});
-}
-function extFromMime(mime){
-  if(mime.indexOf('png')>-1) return 'png';
-  if(mime.indexOf('jpeg')>-1 || mime.indexOf('jpg')>-1) return 'jpg';
-  if(mime.indexOf('gif')>-1) return 'gif';
-  if(mime.indexOf('webp')>-1) return 'webp';
-  if(mime.indexOf('svg')>-1) return 'svg';
-  return 'png';
-}
-
-// Markup for one element. Images are collected into `images` for the zip.
-function elMarkup(el, images, ctx){
-  const animType = el.anim && el.anim.type;
-  const hasAnim = animType && animType!=='none';
-  const trigAttr = hasAnim ? ` data-anim-trigger="${el.anim.trigger}" data-anim-duration="${el.anim.duration}" data-anim-delay="${el.anim.delay}"` : '';
-  const animClass = hasAnim ? ` anim-${animType} anim-pending` : '';
-  if(el.type==='text'){
-    const content = escapeHtml(el.text).replace(/\n/g,'<br>');
-    return `    <div class="el el-${el.id}${animClass}"${trigAttr}>${content}</div>`;
-  }
-  if(el.type==='rect' || el.type==='ellipse'){
-    return `    <div class="el el-${el.id}${animClass}"${trigAttr}></div>`;
-  }
-  if(el.type==='embed'){
-    return `    <div class="el el-${el.id}${animClass}"${trigAttr}>${el.html||''}</div>`;
-  }
-  if(el.type==='image'){
-    const src = String(el.src||'');
-    if(ctx.inlineImages){
-      // Published pages point straight at the hosted image (or keep the data
-      // URL), so nothing has to be copied alongside the HTML.
-      return `    <div class="el el-${el.id}${animClass}"${trigAttr}><img src="${escapeHtml(src)}" alt="${escapeHtml(el.alt||'')}"></div>`;
-    }
-    let ext = 'png';
-    if(src.startsWith('data:')){
-      const m = src.match(/data:(.*?);/);
-      ext = extFromMime(m ? m[1] : 'image/png');
-    } else {
-      const m = src.split('?')[0].match(/\.([a-z0-9]+)$/i);
-      if(m) ext = m[1].toLowerCase();
-    }
-    const filename = `img-${++ctx.imgIdx}.${ext}`;
-    // Hosted images are fetched later, in parallel, by exportZip().
-    images.push(src.startsWith('data:')
-      ? { filename, blob: dataURLtoBlob(src) }
-      : { filename, url: src });
-    return `    <div class="el el-${el.id}${animClass}"${trigAttr}><img src="images/${filename}" alt="${escapeHtml(el.alt||'')}"></div>`;
-  }
-  if(el.type==='vector'){
-    const ptsAttr = el.points.map(pt=>(pt.x-el.x)+','+(pt.y-el.y)).join(' ');
-    const gradId = 'grad-'+el.id;
-    let fillAttr, defsMarkup = '';
-    if(el.fill.mode==='gradient' && el.closed){
-      fillAttr = `url(#${gradId})`;
-      defsMarkup = el.fill.gradType==='radial'
-        ? `<radialGradient id="${gradId}" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="${el.fill.from}"/><stop offset="100%" stop-color="${el.fill.to}"/></radialGradient>`
-        : `<linearGradient id="${gradId}" gradientTransform="rotate(${el.fill.angle} 0.5 0.5)"><stop offset="0%" stop-color="${el.fill.from}"/><stop offset="100%" stop-color="${el.fill.to}"/></linearGradient>`;
-    } else {
-      fillAttr = el.closed ? el.fill.color : 'none';
-    }
-    const strokeAttr = el.borderWidth>0 ? `stroke="${el.borderColor||'#000'}" stroke-width="${el.borderWidth}"` : 'stroke="none"';
-    const tag = el.closed ? 'polygon' : 'polyline';
-    const svgMarkup = `<svg width="100%" height="100%" viewBox="0 0 ${el.w} ${el.h}" preserveAspectRatio="none">${defsMarkup?'<defs>'+defsMarkup+'</defs>':''}<${tag} points="${ptsAttr}" fill="${fillAttr}" ${strokeAttr} stroke-linejoin="round" stroke-linecap="round"/></svg>`;
-    return `    <div class="el el-${el.id}${animClass}"${trigAttr}>${svgMarkup}</div>`;
-  }
-  return '';
-}
-
-// Base rule uses the desktop slot; the mobile slot only emits what differs.
-function elCssRule(el, geo){
-  let rule = `.el-${el.id}{position:absolute;left:${geo.x}px;top:${geo.y}px;width:${geo.w}px;height:${geo.h}px;z-index:${el.z};box-sizing:border-box;`;
-  if(geo.hidden) rule += 'display:none;';
-  if(el.type==='text'){
-    rule += `font-size:${geo.fontSize}px;color:${el.color};font-weight:${el.fontWeight};text-align:${el.textAlign};font-family:${el.fontFamily};line-height:1.4;`;
-    if(el.writingMode==='vertical') rule += 'writing-mode:vertical-rl;text-orientation:mixed;';
-  } else if(el.type==='rect'){
-    rule += `background:${fillToCss(el.fill)};border-radius:${el.radius}px;`;
-    if(el.borderWidth>0) rule += `border:${el.borderWidth}px solid ${el.borderColor||'#000'};`;
-  } else if(el.type==='ellipse'){
-    rule += `background:${fillToCss(el.fill)};border-radius:50%;`;
-    if(el.borderWidth>0) rule += `border:${el.borderWidth}px solid ${el.borderColor||'#000'};`;
-  }
-  rule += '}';
-  if(el.type==='image'){
-    rule += `\n.el-${el.id} img{width:100%;height:100%;object-fit:${el.objectFit};border-radius:${el.radius||0}px;display:block;}`;
-  }
-  if(el.type==='embed'){
-    rule += `\n.el-${el.id} iframe,.el-${el.id} > *{width:100%;height:100%;border:0;display:block;}`;
-  }
-  return rule;
-}
-function elSpCssRule(el, pc, sp){
-  const parts = [];
-  if(sp.x !== pc.x) parts.push(`left:${sp.x}px`);
-  if(sp.y !== pc.y) parts.push(`top:${sp.y}px`);
-  if(sp.w !== pc.w) parts.push(`width:${sp.w}px`);
-  if(sp.h !== pc.h) parts.push(`height:${sp.h}px`);
-  if(el.type==='text' && sp.fontSize !== pc.fontSize) parts.push(`font-size:${sp.fontSize}px`);
-  if(!!sp.hidden !== !!pc.hidden) parts.push(sp.hidden ? 'display:none' : 'display:block');
-  return parts.length ? `  .el-${el.id}{${parts.join(';')};}` : '';
-}
-
-// Site navigation, shared by every exported page.
-function buildNavHtml(currentId){
-  const nav = state.site.nav;
-  if(!nav.enabled) return '';
-  const tops = state.pages.filter(p=>!p.parentId && p.inNav !== false);
-  if(!tops.length) return '';
-  const items = tops.map(p=>{
-    const kids = state.pages.filter(c=>c.parentId===p.id && c.inNav !== false);
-    const sub = kids.length
-      ? `<ul class="nav-sub">${kids.map(k=>`<li><a href="${pageFileName(k)}">${escapeHtml(k.name)}</a></li>`).join('')}</ul>`
-      : '';
-    const cur = p.id===currentId ? ' is-current' : '';
-    return `<li class="nav-item${kids.length?' has-sub':''}"><a class="nav-link${cur}" href="${pageFileName(p)}">${escapeHtml(p.name)}</a>${sub}</li>`;
-  }).join('');
-  return `<nav class="site-nav"><div class="nav-inner"><ul class="nav-list">${items}</ul></div></nav>`;
-}
-function buildNavCss(){
-  const nav = state.site.nav;
-  if(!nav.enabled) return '';
-  return `
-.site-nav{position:sticky;top:0;z-index:1000;background:${nav.bg};border-bottom:1px solid rgba(0,0,0,.08);}
-.nav-inner{max-width:1200px;margin:0 auto;padding:0 20px;}
-.nav-list{display:flex;gap:4px;list-style:none;margin:0;padding:0;flex-wrap:wrap;}
-.nav-item{position:relative;}
-.nav-link{display:block;padding:0 16px;line-height:${nav.height}px;color:${nav.color};text-decoration:none;font-size:15px;}
-.nav-link:hover{color:${nav.accent};}
-.nav-link.is-current{color:${nav.accent};box-shadow:inset 0 -2px 0 ${nav.accent};}
-.nav-sub{
-  position:absolute;left:0;top:100%;min-width:180px;background:${nav.bg};list-style:none;margin:0;padding:6px 0;
-  border:1px solid rgba(0,0,0,.08);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);
-  opacity:0;visibility:hidden;transition:opacity .15s;
-}
-.nav-item:hover .nav-sub,.nav-item:focus-within .nav-sub{opacity:1;visibility:visible;}
-.nav-sub a{display:block;padding:9px 16px;color:${nav.color};text-decoration:none;font-size:14px;}
-.nav-sub a:hover{background:rgba(0,0,0,.05);color:${nav.accent};}
-@media (max-width:768px){
-  .nav-list{gap:0;}
-  .nav-link{padding:0 11px;font-size:14px;line-height:52px;}
-}`;
-}
-
-function buildPageHead(page, navHtml){
-  const title = escapeHtml(page.seo.title || page.name || 'マイページ');
-  const desc = page.seo.description ? `\n<meta name="description" content="${escapeHtml(page.seo.description)}">` : '';
-  const ogDesc = page.seo.description ? `\n<meta property="og:description" content="${escapeHtml(page.seo.description)}">` : '';
-  const ogImg = page.seo.ogImage ? `\n<meta property="og:image" content="${escapeHtml(page.seo.ogImage)}">` : '';
-  return `<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>${title}</title>${desc}
-<meta property="og:title" content="${title}">
-<meta property="og:type" content="website">${ogDesc}${ogImg}
-<link rel="stylesheet" href="styles.css">
-</head>
-<body>
-${navHtml}`;
-}
-
-function buildCss(elementRules, spRules, maxHeight){
-  return `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Shippori+Mincho:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap');
-*{box-sizing:border-box;}
-body{margin:0;font-family:'Noto Sans JP',sans-serif;background:#f4f3ee;}
-${buildNavCss()}
-.page-wrap{width:100%;overflow:hidden;}
-.page{position:relative;width:${state.desktopWidth}px;min-height:${maxHeight}px;margin:0 auto;transform-origin:top left;}
-.el{position:absolute;}
-${elementRules}
-.anim-pending{opacity:0;}
-.anim-pending.is-visible{animation-timing-function:ease;animation-fill-mode:both;}
-@keyframes kfFadeIn{from{opacity:0;}to{opacity:1;}}
-@keyframes kfSlideUp{from{opacity:0;transform:translateY(40px);}to{opacity:1;transform:translateY(0);}}
-@keyframes kfSlideDown{from{opacity:0;transform:translateY(-40px);}to{opacity:1;transform:translateY(0);}}
-@keyframes kfSlideLeft{from{opacity:0;transform:translateX(40px);}to{opacity:1;transform:translateX(0);}}
-@keyframes kfSlideRight{from{opacity:0;transform:translateX(-40px);}to{opacity:1;transform:translateX(0);}}
-@keyframes kfZoomIn{from{opacity:0;transform:scale(.85);}to{opacity:1;transform:scale(1);}}
-.anim-fade-in.is-visible{animation-name:kfFadeIn;}
-.anim-slide-up.is-visible{animation-name:kfSlideUp;}
-.anim-slide-down.is-visible{animation-name:kfSlideDown;}
-.anim-slide-left.is-visible{animation-name:kfSlideLeft;}
-.anim-slide-right.is-visible{animation-name:kfSlideRight;}
-.anim-zoom-in.is-visible{animation-name:kfZoomIn;}
-@media (max-width:768px){
-  .page{width:${state.mobileWidth}px;}
-${spRules}
-}
-`;
-}
-
-function buildJs(){
-  return `function fitScale(){
-  var page = document.querySelector('.page');
-  var wrap = document.querySelector('.page-wrap');
-  if(!page || !wrap) return;
-  page.style.transform = 'none';
-  wrap.style.height = '';
-  var w = page.offsetWidth;
-  var scale = Math.min(1, window.innerWidth / w);
-  page.style.transform = 'scale(' + scale + ')';
-  wrap.style.height = (page.offsetHeight * scale) + 'px';
-}
-window.addEventListener('resize', fitScale);
-window.addEventListener('load', fitScale);
-fitScale();
-
-document.addEventListener('DOMContentLoaded', function(){
-  var animEls = document.querySelectorAll('[data-anim-trigger]');
-  animEls.forEach(function(el){
-    el.style.animationDuration = (el.dataset.animDuration || '600') + 'ms';
-    el.style.animationDelay = (el.dataset.animDelay || '0') + 'ms';
-  });
-  document.querySelectorAll('[data-anim-trigger="load"]').forEach(function(el){
-    requestAnimationFrame(function(){ el.classList.add('is-visible'); });
-  });
-  var scrollEls = document.querySelectorAll('[data-anim-trigger="scroll"]');
-  if('IntersectionObserver' in window){
-    var io = new IntersectionObserver(function(entries){
-      entries.forEach(function(entry){
-        if(entry.isIntersecting){
-          entry.target.classList.add('is-visible');
-          io.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.15 });
-    scrollEls.forEach(function(el){ io.observe(el); });
-  } else {
-    scrollEls.forEach(function(el){ el.classList.add('is-visible'); });
-  }
-});
-`;
-}
-
-// Renders the whole site to plain text files. `inlineImages` keeps image URLs
-// as-is (used when publishing); otherwise images are collected for the zip.
-function buildSiteFiles(opts){
-  opts = opts || {};
-  syncPageFromState();
-  syncDeviceFromState();
-
-  const images = [];
-  const ctx = { imgIdx: 0, inlineImages: !!opts.inlineImages };
-  const files = {};
-  const allRules = [];
-  const allSpRules = [];
-  let maxPcHeight = 0;
-
-  state.pages.forEach(page=>{
-    const sorted = page.els.slice().sort((a,b)=>a.z-b.z);
-    const bodyParts = sorted.map(el=>elMarkup(el, images, ctx)).join('\n');
-
-    sorted.forEach(el=>{
-      const pc = el.pc || pickDeviceProps(el);
-      allRules.push(elCssRule(el, pc));
-      if(el.sp){
-        const r = elSpCssRule(el, pc, el.sp);
-        if(r) allSpRules.push(r);
-      }
-    });
-
-    const pcH = page.canvasHeight;
-    maxPcHeight = Math.max(maxPcHeight, pcH);
-
-    const isHome = isHomePage(page);
-    // The editable project JSON is only embedded in the downloadable zip, so a
-    // published site never exposes its own source.
-    const dataScript = (opts.includeSource && isHome)
-      ? `\n<script type="application/json" id="page-builder-data">${JSON.stringify(currentProjectData()).replace(/<\/script/gi, '<\\/script')}<\/script>`
-      : '';
-
-    files[pageFileName(page)] = buildPageHead(page, buildNavHtml(page.id)) + `
-<div class="page-wrap">
-  <div class="page page-${page.id}" style="background:${page.canvasBg};min-height:${pcH}px;">
-${bodyParts}
+    <div class="row2" style="margin-top:7px;">
+      <button class="btn" data-op="bgimg" style="justify-content:center;">${bgUrl?'背景画像を変更':'背景画像を設定'}</button>
+      <button class="btn" data-op="bgclear" style="justify-content:center;" ${bgUrl?'':'disabled'}>背景画像を外す</button>
+    </div>
   </div>
-</div>
-<script src="script.js"><\/script>${dataScript}
-</body>
-</html>
-`;
+  <hr class="sep">`;
+
+  html += `<div class="field"><label>画像 (${imgs.length})</label>`;
+  html += imgs.length ? imgs.map((im,i)=>`
+    <div class="asset">
+      <img src="${escapeAttr(im.getAttribute('src')||'')}" alt="">
+      <div class="a-body">
+        <div class="a-name">${escapeHtml((im.getAttribute('alt')||'画像 '+(i+1)))}</div>
+        <button data-img="${i}">差し替える</button>
+      </div>
+    </div>`).join('') : '<div class="hint">このブロックに画像はありません。</div>';
+  html += '</div>';
+
+  html += `<div class="field"><label>リンク (${links.length})</label>`;
+  html += links.length ? links.map((a,i)=>`
+    <div style="margin-bottom:8px;">
+      <div class="a-name" style="margin-bottom:4px;">${escapeHtml(a.textContent.trim().slice(0,26) || 'リンク '+(i+1))}</div>
+      <input type="text" data-link="${i}" value="${escapeAttr(a.getAttribute('href')||'')}">
+    </div>`).join('') : '<div class="hint">このブロックにリンクはありません。</div>';
+  html += '</div>';
+
+  insp.innerHTML = html;
+  insp.querySelectorAll('[data-op]').forEach(b=>b.addEventListener('click', ()=>{
+    const op = b.dataset.op;
+    if(op==='up') moveBlock(state.selected,-1);
+    else if(op==='down') moveBlock(state.selected,1);
+    else if(op==='dup') duplicateBlock(state.selected);
+    else if(op==='del') deleteBlock(state.selected);
+    else if(op==='vis') toggleBlock(state.selected);
+    else if(op==='bgimg'){ pendingBg = el; $('imgInput').click(); }
+    else if(op==='bgclear'){ el.style.backgroundImage = 'none'; commit(); renderInspector(); }
+  }));
+  const bindColor = (id, prop)=>{
+    const n = document.getElementById(id);
+    if(!n) return;
+    n.addEventListener('input', ()=>{ el.style[prop] = n.value; });
+    n.addEventListener('change', ()=>{ commit(); renderColors(); });
+  };
+  bindColor('blkBg','backgroundColor');
+  bindColor('blkFg','color');
+
+  insp.querySelectorAll('[data-img]').forEach(b=>b.addEventListener('click', ()=>replaceImage(imgs[Number(b.dataset.img)])));
+  insp.querySelectorAll('[data-link]').forEach(inp=>{
+    inp.addEventListener('change', ()=>{ links[Number(inp.dataset.link)].setAttribute('href', inp.value); commit(); });
   });
-
-  files['styles.css'] = buildCss(allRules.join('\n'), allSpRules.join('\n'), maxPcHeight);
-  files['script.js'] = buildJs();
-  return { files, images };
 }
 
-async function exportZip(){
-  const btn = $('btnExport');
-  btn.disabled = true;
-  try{
-    if(typeof JSZip === 'undefined'){
-      throw new Error('JSZipの読み込みに失敗しました。通信環境を確認してもう一度お試しください。');
-    }
-    const { files, images } = buildSiteFiles({ includeSource: true });
-    const zip = new JSZip();
-    Object.keys(files).forEach(name=>zip.file(name, files[name]));
-
-    if(images.length){
-      await Promise.all(images.map(async img=>{
-        if(img.blob) return;
-        try{
-          const res = await fetch(img.url, { credentials:'same-origin' });
-          if(res.ok) img.blob = await res.blob();
-        }catch(err){ console.error('image fetch failed', img.url, err); }
-      }));
-      const folder = zip.folder('images');
-      images.forEach(img=>{ if(img.blob) folder.file(img.filename, img.blob); });
-    }
-
-    const blob = await zip.generateAsync({type:'blob'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'page-export.zip';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url), 2000);
-    flashSaveStatus(state.pages.length + 'ページを書き出しました');
-  } catch(err){
-    console.error(err);
-    alert('書き出し中にエラーが発生しました。\n' + err.message);
-  } finally {
-    btn.disabled = false;
-  }
+// ---------- serialize ----------
+// Produces the clean document: editor attributes gone, hidden blocks dropped,
+// the author's own CSS and scripts untouched.
+function cleanHtml(raw){
+  const d = parseHtml(raw);
+  d.querySelectorAll('[data-blk-off]').forEach(n=>n.remove());
+  d.querySelectorAll('[data-blk]').forEach(n=>{
+    n.removeAttribute('data-blk');
+    n.classList.remove('blk-sel');
+    if(!n.getAttribute('class')) n.removeAttribute('class');
+  });
+  d.querySelectorAll('[data-edit-text]').forEach(n=>{
+    n.removeAttribute('data-edit-text');
+    n.removeAttribute('contenteditable');
+  });
+  const css = d.getElementById('__editor_css');
+  if(css) css.remove();
+  return '<!DOCTYPE html>\n' + d.documentElement.outerHTML;
 }
-$('btnExport').addEventListener('click', exportZip);
-
-// ---------------- Import ----------------
-function applyLoadedProject(data){
-  state.desktopWidth = data.desktopWidth || data.canvasWidth || 1200;
-  state.mobileWidth = data.mobileWidth || 480;
-  state.device = data.device === 'sp' ? 'sp' : 'pc';
-  state.site = data.site || { nav: { enabled:true, bg:'#ffffff', color:'#1a1a1a', accent:'#6c5ce7', height:64 } };
-  if(!state.site.nav) state.site.nav = { enabled:true, bg:'#ffffff', color:'#1a1a1a', accent:'#6c5ce7', height:64 };
-
-  if(Array.isArray(data.pages) && data.pages.length){
-    state.pages = data.pages.map(p=>Object.assign(newPage(p.name), p, {
-      seo: p.seo || { title:'', description:'', ogImage:'' },
-      els: p.els || [],
-    }));
-  } else {
-    // v2 and earlier held a single page inline.
-    const p = newPage('ホーム', { slug:'index' });
-    p.els = data.els || [];
-    p.canvasHeight = data.canvasHeight || 1600;
-    p.canvasBg = data.canvasBg || '#ffffff';
-    state.pages = [p];
-  }
-  const wanted = data.currentPageId && state.pages.some(p=>p.id===data.currentPageId)
-    ? data.currentPageId : state.pages[0].id;
-  state.currentPageId = wanted;
-  loadPageIntoState(state.pages.find(p=>p.id===wanted));
-  state.canvasWidth = state.device === 'sp' ? state.mobileWidth : state.desktopWidth;
-
-  // Ids must stay unique across every page, so seed the counter past them all.
-  let maxNum = 0;
-  const bump = (id)=>{ const n = parseInt(String(id).replace(/[^0-9]/g,''),10); if(!isNaN(n)) maxNum = Math.max(maxNum, n); };
-  state.pages.forEach(p=>{ bump(p.id); p.els.forEach(el=>{ bump(el.id); if(el.groupId) bump(el.groupId); }); });
-  state.idCounter = maxNum + 1;
-
-  state.selectedId = null;
-  state.selectedIds = [];
-  syncCanvasBox();
-  const cbg = $('canvasBg'); if(cbg) cbg.value = state.canvasBg;
-  renderAll();
-  renderPages();
-  renderInspector();
-  zoomToFit();
-  historyReset();
+// Every page, cleaned, keyed by output file name.
+function allPageFiles(){
+  captureCurrent();
+  const files = {};
+  state.pages.forEach(p=>{ files[p.file] = cleanHtml(p.html); });
+  return files;
 }
+function serialize(){ return cleanHtml(currentRaw()); }
 
-$('btnImport').addEventListener('click', ()=>{ zipInput.click(); });
-
-zipInput.addEventListener('change', async (e)=>{
-  const file = e.target.files[0];
-  if(!file) return;
-  if(state.els.length && !confirm('現在のキャンバスの内容は上書きされます。よろしいですか?')){
-    zipInput.value=''; return;
-  }
-  if(state.drawingMode) cancelPenTool();
-  try{
-    if(typeof JSZip === 'undefined') throw new Error('JSZipの読み込みに失敗しました。通信環境を確認してください。');
-    const zip = await JSZip.loadAsync(file);
-    let htmlFile = zip.file('index.html');
-    if(!htmlFile){
-      const candidates = Object.keys(zip.files).filter(name=>name.toLowerCase().endsWith('index.html') && !zip.files[name].dir);
-      if(candidates.length) htmlFile = zip.file(candidates[0]);
-    }
-    if(!htmlFile) throw new Error('index.htmlが見つかりません。このツールで書き出したZIPを選択してください。');
-    const htmlText = await htmlFile.async('string');
-    const match = htmlText.match(/<script type="application\/json" id="page-builder-data">([\s\S]*?)<\/script>/);
-    if(!match) throw new Error('編集用データが見つかりません。このツールで書き出したZIPのみ読み込めます。');
-    const jsonStr = match[1].replace(/<\\\/script/gi, '</script');
-    const data = JSON.parse(jsonStr);
-    applyLoadedProject(data);
-  } catch(err){
-    console.error(err);
-    alert('ZIPの読み込みに失敗しました。\n' + err.message);
-  } finally {
-    zipInput.value = '';
-  }
+// ---------- export ----------
+$('btnExport').addEventListener('click', async ()=>{
+  if(!state.doc){ flash('先にHTMLを読み込んでください', true); return; }
+  if(typeof JSZip === 'undefined'){ flash('JSZipの読み込みに失敗しました', true); return; }
+  const zip = new JSZip();
+  const files = allPageFiles();
+  Object.keys(files).forEach(name=>zip.file(name, files[name]));
+  Object.keys(state.assets).forEach(name=>{
+    if(/\.css$/i.test(name)) return;              // already inlined
+    const v = state.assets[name];
+    if(typeof v === 'string' && v.startsWith('data:')) zip.file(name, v.split(',')[1], {base64:true});
+  });
+  const blob = await zip.generateAsync({type:'blob'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = state.originalName + '-edited.zip';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+  flash(Object.keys(files).length + 'ページをZIPに保存しました');
 });
 
-// ---------------- Temporary save (this browser: Claude artifact storage, else localStorage) ----------------
-let saveStatusTimer = null;
-function flashSaveStatus(msg, isError){
-  const el = $('saveStatus');
-  if(!el) return;
-  el.textContent = msg;
-  el.style.color = isError ? '#e77' : 'var(--text-muted)';
-  el.style.opacity = '1';
-  clearTimeout(saveStatusTimer);
-  saveStatusTimer = setTimeout(()=>{ el.style.opacity='0'; }, 2400);
-}
-
-const LS_KEY = 'page-builder-autosave';
-function currentProjectData(){
-  syncPageFromState();
-  syncDeviceFromState();
-  return {
-    version: 3,
-    canvasWidth: state.canvasWidth,
-    canvasHeight: state.canvasHeight,
-    canvasBg: state.canvasBg,
-    desktopWidth: state.desktopWidth,
-    mobileWidth: state.mobileWidth,
-    device: state.device,
-    site: state.site,
-    pages: state.pages,
-    currentPageId: state.currentPageId,
-    els: state.els,          // kept so v2 readers still see the current page
-  };
-}
-
-async function saveTemp(){
-  const data = JSON.stringify(Object.assign(currentProjectData(), { savedAt: Date.now() }));
-  if(window.storage){
-    try{
-      const result = await window.storage.set('autosave', data, false);
-      flashSaveStatus(result ? '保存しました' : '保存に失敗しました', !result);
-      return;
-    } catch(err){ console.error(err); }
-  }
-  try{
-    localStorage.setItem(LS_KEY, data);
-    flashSaveStatus('保存しました(このブラウザ内)');
-  } catch(err){
-    console.error(err);
-    flashSaveStatus('保存に失敗しました', true);
-  }
-}
-
-async function loadTemp(){
-  if(window.storage){
-    try{
-      const result = await window.storage.get('autosave', false);
-      if(result && result.value){ applyLoadedProject(JSON.parse(result.value)); return true; }
-    } catch(err){ console.log('No artifact autosave', err); }
-  }
-  try{
-    const raw = localStorage.getItem(LS_KEY);
-    if(raw){ applyLoadedProject(JSON.parse(raw)); return true; }
-  } catch(err){ console.log('No local autosave', err); }
-  return false;
-}
-
-$('btnSaveTemp').addEventListener('click', saveTemp);
-
-// ---------------- Cloud (Google login + server-side projects) ----------------
-const cloud = { user: null, currentProjectId: null, currentProjectName: null };
-
-function renderAccount(){
-  const area = $('accountArea');
-  if(!area) return;
-  if(cloud.user){
-    area.innerHTML = `<span class="account" title="${escapeHtml(cloud.user.email)}">👤 ${escapeHtml(cloud.user.email)}</span><button class="btn" id="btnLogout">ログアウト</button>`;
-    $('btnLogout').addEventListener('click', cloudLogout);
-  } else {
-    area.innerHTML = `<button class="btn btn-primary" id="btnLogin">Googleでログイン</button>`;
-    $('btnLogin').addEventListener('click', ()=>{ window.location.href = '/api/auth/login'; });
-  }
-}
-
+// ---------- publish ----------
 async function refreshAuth(){
   try{
-    const res = await fetch('/api/auth/me', { credentials:'same-origin' });
-    const j = await res.json();
-    cloud.user = j.user || null;
-  } catch(err){ cloud.user = null; }
-  renderAccount();
+    const r = await fetch('/api/auth/me', { credentials:'same-origin' });
+    const j = await r.json();
+    state.user = j.user || null;
+  }catch(err){ state.user = null; }
+  const a = $('accountArea');
+  a.innerHTML = state.user
+    ? `<span class="account" title="${escapeAttr(state.user.email)}">${escapeHtml(state.user.email)}</span>`
+    : `<button class="btn" id="btnLogin">ログイン</button>`;
+  const b = $('btnLogin');
+  if(b) b.addEventListener('click', ()=>{ location.href = '/api/auth/login'; });
 }
 
-function ensureLogin(){
-  if(cloud.user) return true;
-  if(confirm('クラウド機能を使うにはGoogleログインが必要です。ログインしますか?')){
-    window.location.href = '/api/auth/login';
-  }
-  return false;
-}
-
-async function cloudLogout(){
-  try{ await fetch('/api/auth/logout', { method:'POST', credentials:'same-origin' }); }catch(err){}
-  cloud.user = null; cloud.currentProjectId = null; cloud.currentProjectName = null;
-  renderAccount();
-  flashSaveStatus('ログアウトしました');
-}
-
-async function cloudSave(){
-  if(!ensureLogin()) return;
-  const data = currentProjectData();
-  const btn = $('btnCloudSave');
-  const original = btn.textContent;
-  btn.disabled = true; btn.textContent = '保存中…';
-  try{
-    let res;
-    if(cloud.currentProjectId){
-      res = await fetch('/api/projects/' + cloud.currentProjectId, {
-        method:'PUT', credentials:'same-origin', headers:{ 'content-type':'application/json' },
-        body: JSON.stringify({ name: cloud.currentProjectName, data })
-      });
-    } else {
-      const name = prompt('プロジェクト名を入力してください', cloud.currentProjectName || 'マイプロジェクト');
-      if(name === null){ return; }
-      res = await fetch('/api/projects', {
-        method:'POST', credentials:'same-origin', headers:{ 'content-type':'application/json' },
-        body: JSON.stringify({ name: name || '無題のプロジェクト', data })
-      });
-    }
-    if(res.status === 401){ cloud.user = null; renderAccount(); ensureLogin(); return; }
-    if(!res.ok) throw new Error('HTTP ' + res.status);
-    const j = await res.json();
-    if(j.id) cloud.currentProjectId = j.id;
-    if(j.name) cloud.currentProjectName = j.name;
-    flashSaveStatus('クラウドに保存しました');
-  } catch(err){
-    console.error(err);
-    flashSaveStatus('クラウド保存に失敗しました', true);
-  } finally {
-    btn.disabled = false; btn.textContent = original;
-  }
-}
-
-function closeCloudModal(){ $('cloudModal').classList.remove('open'); }
-
-async function openCloudList(){
-  if(!ensureLogin()) return;
-  const body = $('cloudModalBody');
-  body.innerHTML = '<div class="modal-empty">読み込み中…</div>';
-  $('cloudModal').classList.add('open');
-  try{
-    const res = await fetch('/api/projects', { credentials:'same-origin' });
-    if(res.status === 401){ closeCloudModal(); cloud.user = null; renderAccount(); ensureLogin(); return; }
-    if(!res.ok) throw new Error('HTTP ' + res.status);
-    const j = await res.json();
-    const projects = j.projects || [];
-    if(!projects.length){
-      body.innerHTML = '<div class="modal-empty">保存済みのプロジェクトはまだありません。<br>「☁ クラウド保存」で保存すると、ここに表示されます。</div>';
-      return;
-    }
-    body.innerHTML = projects.map(p=>`
-      <div class="proj-item" data-id="${p.id}">
-        <div>
-          <div class="pname">${escapeHtml(p.name)}</div>
-          <div class="pmeta">更新: ${new Date(p.updated_at).toLocaleString('ja-JP')}</div>
-        </div>
-        <button class="proj-del" data-del="${p.id}" title="削除">🗑</button>
-      </div>`).join('');
-    body.querySelectorAll('.proj-item').forEach(n=>{
-      n.addEventListener('click', (e)=>{
-        if(e.target.closest('[data-del]')) return;
-        loadCloudProject(n.dataset.id);
-      });
-    });
-    body.querySelectorAll('[data-del]').forEach(b=>{
-      b.addEventListener('click', async (e)=>{
-        e.stopPropagation();
-        if(!confirm('このプロジェクトを削除しますか?この操作は元に戻せません。')) return;
-        await deleteCloudProject(b.dataset.del);
-        openCloudList();
-      });
-    });
-  } catch(err){
-    console.error(err);
-    body.innerHTML = '<div class="modal-empty" style="color:#e77;">一覧の取得に失敗しました。</div>';
-  }
-}
-
-async function loadCloudProject(id){
-  if(state.els.length && !confirm('現在のキャンバスの内容は上書きされます。よろしいですか?')) return;
-  try{
-    const res = await fetch('/api/projects/' + id, { credentials:'same-origin' });
-    if(res.status === 401){ closeCloudModal(); cloud.user = null; renderAccount(); ensureLogin(); return; }
-    if(!res.ok) throw new Error('HTTP ' + res.status);
-    const j = await res.json();
-    if(state.drawingMode) cancelPenTool();
-    applyLoadedProject(j.data || {});
-    cloud.currentProjectId = j.id;
-    cloud.currentProjectName = j.name;
-    closeCloudModal();
-    flashSaveStatus('クラウドから読み込みました');
-  } catch(err){
-    console.error(err);
-    flashSaveStatus('読み込みに失敗しました', true);
-  }
-}
-
-async function deleteCloudProject(id){
-  try{
-    const res = await fetch('/api/projects/' + id, { method:'DELETE', credentials:'same-origin' });
-    if(!res.ok && res.status !== 404) throw new Error('HTTP ' + res.status);
-    if(cloud.currentProjectId === id){ cloud.currentProjectId = null; cloud.currentProjectName = null; }
-  } catch(err){ console.error(err); flashSaveStatus('削除に失敗しました', true); }
-}
-
-$('btnCloudSave').addEventListener('click', cloudSave);
-$('btnCloudOpen').addEventListener('click', openCloudList);
-$('cloudModalClose').addEventListener('click', closeCloudModal);
-$('cloudModal').addEventListener('click', (e)=>{ if(e.target === $('cloudModal')) closeCloudModal(); });
-
-// ---------------- Publish ----------------
-const publishState = { slug: null, url: null };
-
-function closePublishModal(){ $('publishModal').classList.remove('open'); }
-
-function renderPublishModal(view){
-  const body = $('publishModalBody');
-  if(view.loading){
-    body.innerHTML = `<div class="modal-empty">${escapeHtml(view.loading)}</div>`;
+$('btnPublish').addEventListener('click', async ()=>{
+  if(!state.doc){ flash('先にHTMLを読み込んでください', true); return; }
+  if(!state.user){
+    if(confirm('公開にはログインが必要です。ログインしますか?')) location.href='/api/auth/login';
     return;
   }
-  if(view.error){
-    body.innerHTML = `<div class="modal-empty" style="color:#e77;">${escapeHtml(view.error)}</div>
-      <button class="btn full-btn" id="pubRetry">もう一度試す</button>`;
-    $('pubRetry').addEventListener('click', openPublishModal);
-    return;
-  }
-  if(view.published){
-    body.innerHTML = `
-      <div class="modal-empty" style="color:var(--text);">公開しました 🎉</div>
-      <div class="field"><label>公開URL</label>
-        <input type="text" id="pubUrl" value="${escapeHtml(view.url)}" readonly></div>
-      <div class="row-actions">
-        <button class="btn" id="pubCopy">URLをコピー</button>
-        <button class="btn" id="pubOpen">開く</button>
-      </div>
-      <hr class="sep">
-      <button class="btn full-btn" id="pubUnpublish">公開を停止する</button>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.7;">
-        更新したいときは、もう一度この公開ボタンを押すと同じURLのまま差し替わります。
-      </div>`;
-    $('pubCopy').addEventListener('click', async ()=>{
-      try{ await navigator.clipboard.writeText(view.url); flashSaveStatus('URLをコピーしました'); }
-      catch(err){ $('pubUrl').select(); }
-    });
-    $('pubOpen').addEventListener('click', ()=>window.open(view.url, '_blank', 'noopener'));
-    $('pubUnpublish').addEventListener('click', unpublishSite);
-    return;
-  }
-  const pageCount = state.pages.length;
-  body.innerHTML = `
-    <div class="field"><label>サイト名</label>
-      <input type="text" id="pubTitle" value="${escapeHtml(cloud.currentProjectName || 'マイサイト')}"></div>
-    ${publishState.slug ? `<div class="field"><label>公開URL(変更しません)</label>
-      <input type="text" value="${escapeHtml(publishState.url||'')}" readonly></div>` : ''}
-    <div class="modal-empty">${pageCount}ページを公開します。${publishState.slug ? '既存のURLを上書きします。' : '公開後にURLが発行されます。'}</div>
-    <button class="btn btn-primary full-btn" id="pubGo">${publishState.slug ? '更新して公開' : '公開する'}</button>
-    <div style="font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.7;">
-      公開ページは誰でも閲覧できます。編集用のデータは含まれません。
-    </div>`;
-  $('pubGo').addEventListener('click', ()=>doPublish($('pubTitle').value));
-}
-
-async function openPublishModal(){
-  if(!ensureLogin()) return;
   $('publishModal').classList.add('open');
-  renderPublishModal({ loading: '公開状況を確認中…' });
+  $('publishBody').innerHTML = '<div class="empty">公開状況を確認中…</div>';
   try{
-    const res = await fetch('/api/publish', { credentials:'same-origin' });
-    if(res.status === 401){ closePublishModal(); cloud.user = null; renderAccount(); ensureLogin(); return; }
-    const j = await res.json();
-    // Match this project to an existing site so republishing keeps the URL.
-    const mine = (j.sites || []).find(sitesMatch);
-    if(mine){
-      publishState.slug = mine.slug;
-      publishState.url = new URL('/s/' + mine.slug + '/', location.origin).href;
-    }
-    renderPublishModal({});
-  }catch(err){
-    console.error(err);
-    renderPublishModal({ error: '公開状況の取得に失敗しました。' });
-  }
+    const r = await fetch('/api/publish', { credentials:'same-origin' });
+    const j = await r.json();
+    const mine = (j.sites||[]).find(s=>s.slug === state.publishSlug);
+    if(mine){ state.publishSlug = mine.slug; state.publishUrl = location.origin + '/s/' + mine.slug + '/'; }
+    renderPublish();
+  }catch(err){ renderPublish(); }
+});
+function renderPublish(){
+  $('publishBody').innerHTML = `
+    <div class="field"><label>サイト名</label><input type="text" id="pubTitle" value="${escapeAttr($('docTitle').value || 'マイサイト')}"></div>
+    ${state.publishUrl ? `<div class="field"><label>公開URL(同じURLを更新します)</label><input type="text" value="${escapeAttr(state.publishUrl)}" readonly></div>` : ''}
+    <button class="btn btn-primary" id="pubGo" style="width:100%;justify-content:center;">${state.publishUrl?'更新して公開':'公開する'}</button>`;
+  $('pubGo').addEventListener('click', doPublish);
 }
-function sitesMatch(site){
-  if(cloud.currentProjectId && site.project_id) return site.project_id === cloud.currentProjectId;
-  return publishState.slug ? site.slug === publishState.slug : false;
-}
-
-async function doPublish(title){
-  renderPublishModal({ loading: 'ページを生成して公開中…' });
+async function doPublish(){
+  $('publishBody').innerHTML = '<div class="empty">公開中…</div>';
   try{
-    const { files } = buildSiteFiles({ inlineImages: true });
     const res = await fetch('/api/publish', {
-      method:'POST',
-      credentials:'same-origin',
-      headers:{ 'content-type':'application/json' },
+      method:'POST', credentials:'same-origin', headers:{'content-type':'application/json'},
       body: JSON.stringify({
-        title: title || 'マイサイト',
-        slug: publishState.slug || undefined,
-        projectId: cloud.currentProjectId || undefined,
-        files,
+        title: $('docTitle').value || 'マイサイト',
+        slug: state.publishSlug || undefined,
+        files: allPageFiles(),
       }),
     });
     const j = await res.json().catch(()=>({}));
-    if(res.status === 401){ closePublishModal(); cloud.user = null; renderAccount(); ensureLogin(); return; }
-    if(!res.ok){
-      renderPublishModal({ error: j.message || ('公開に失敗しました (HTTP ' + res.status + ')') });
-      return;
+    if(!res.ok){ $('publishBody').innerHTML = `<div class="empty" style="color:#e77;">${escapeHtml(j.message||'公開に失敗しました')}</div>`; return; }
+    state.publishSlug = j.slug; state.publishUrl = j.url;
+    $('publishBody').innerHTML = `
+      <div class="empty" style="color:var(--text);">公開しました 🎉</div>
+      <div class="field"><label>公開URL</label><input type="text" id="pubUrl" value="${escapeAttr(j.url)}" readonly></div>
+      <div class="row2">
+        <button class="btn" id="pubCopy">URLをコピー</button>
+        <button class="btn" id="pubOpen">開く</button>
+      </div>`;
+    $('pubCopy').addEventListener('click', async ()=>{ try{ await navigator.clipboard.writeText(j.url); flash('コピーしました'); }catch(e){ $('pubUrl').select(); } });
+    $('pubOpen').addEventListener('click', ()=>window.open(j.url,'_blank','noopener'));
+    flash('公開しました');
+  }catch(err){
+    $('publishBody').innerHTML = '<div class="empty" style="color:#e77;">公開に失敗しました。</div>';
+  }
+}
+
+// ---------- import UI ----------
+$('btnImport').addEventListener('click', ()=>$('importModal').classList.add('open'));
+$('importClose').addEventListener('click', ()=>$('importModal').classList.remove('open'));
+$('importModal').addEventListener('click', (e)=>{ if(e.target===$('importModal')) $('importModal').classList.remove('open'); });
+$('dropZone').addEventListener('click', ()=>$('fileInput').click());
+['dragenter','dragover'].forEach(ev=>$('dropZone').addEventListener(ev, e=>{ e.preventDefault(); $('dropZone').classList.add('over'); }));
+['dragleave','drop'].forEach(ev=>$('dropZone').addEventListener(ev, e=>{ e.preventDefault(); $('dropZone').classList.remove('over'); }));
+$('dropZone').addEventListener('drop', e=>{ const f = e.dataTransfer.files[0]; if(f) handleFile(f); });
+$('fileInput').addEventListener('change', e=>{ const f = e.target.files[0]; $('fileInput').value=''; if(f) handleFile(f); });
+$('btnPasteGo').addEventListener('click', ()=>{
+  const t = $('pasteArea').value.trim();
+  if(!t){ flash('HTMLを貼り付けてください', true); return; }
+  $('importModal').classList.remove('open');
+  loadDocument(t, {}, 'site');
+});
+
+async function handleFile(file){
+  const name = file.name.replace(/\.[^.]+$/,'');
+  if(/\.zip$/i.test(file.name)){
+    if(typeof JSZip === 'undefined'){ flash('JSZipの読み込みに失敗しました', true); return; }
+    const zip = await JSZip.loadAsync(file);
+    const names = Object.keys(zip.files).filter(n=>!zip.files[n].dir);
+    const htmlName = names.find(n=>/(^|\/)index\.html?$/i.test(n)) || names.find(n=>/\.html?$/i.test(n));
+    if(!htmlName){ flash('ZIPの中にHTMLが見つかりません', true); return; }
+    const assets = {};
+    for(const n of names){
+      if(n === htmlName) continue;
+      if(/\.(css)$/i.test(n)) assets[n] = await zip.file(n).async('string');
+      else if(/\.(png|jpe?g|gif|webp|svg|avif)$/i.test(n)){
+        const b64 = await zip.file(n).async('base64');
+        const mime = /\.svg$/i.test(n) ? 'image/svg+xml' : ('image/' + n.split('.').pop().toLowerCase().replace('jpg','jpeg'));
+        assets[n] = 'data:' + mime + ';base64,' + b64;
+      }
     }
-    publishState.slug = j.slug;
-    publishState.url = j.url;
-    renderPublishModal({ published:true, url:j.url });
-    flashSaveStatus('公開しました');
-  }catch(err){
-    console.error(err);
-    renderPublishModal({ error: '公開に失敗しました。通信環境を確認してください。' });
+    const text = await zip.file(htmlName).async('string');
+    $('importModal').classList.remove('open');
+    loadDocument(text, assets, name);
+  } else {
+    const text = await file.text();
+    $('importModal').classList.remove('open');
+    loadDocument(text, {}, name);
   }
 }
 
-async function unpublishSite(){
-  if(!publishState.slug) return;
-  if(!confirm('公開を停止すると、URLにアクセスできなくなります。よろしいですか?')) return;
-  renderPublishModal({ loading: '公開を停止中…' });
-  try{
-    const res = await fetch('/api/publish/' + publishState.slug, { method:'DELETE', credentials:'same-origin' });
-    if(!res.ok && res.status !== 404) throw new Error('HTTP ' + res.status);
-    publishState.slug = null;
-    publishState.url = null;
-    renderPublishModal({});
-    flashSaveStatus('公開を停止しました');
-  }catch(err){
-    console.error(err);
-    renderPublishModal({ error: '公開の停止に失敗しました。' });
-  }
-}
+// ---------- misc ----------
+function escapeHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function escapeAttr(s){ return escapeHtml(s); }
 
-$('btnPublish').addEventListener('click', openPublishModal);
-$('publishModalClose').addEventListener('click', closePublishModal);
-$('publishModal').addEventListener('click', (e)=>{ if(e.target === $('publishModal')) closePublishModal(); });
+$('btnUndo').innerHTML = ICONS.undo;
+$('btnRedo').innerHTML = ICONS.redo;
+$('btnUndo').addEventListener('click', undo);
+$('btnRedo').addEventListener('click', redo);
+$('publishClose').addEventListener('click', ()=>$('publishModal').classList.remove('open'));
+$('publishModal').addEventListener('click', (e)=>{ if(e.target===$('publishModal')) $('publishModal').classList.remove('open'); });
+document.querySelectorAll('[data-w]').forEach(b=>b.addEventListener('click', ()=>{
+  $('stage').className = b.dataset.w==='pc' ? '' : 'w-'+b.dataset.w;
+  document.querySelectorAll('[data-w]').forEach(x=>x.classList.toggle('active', x===b));
+}));
+document.addEventListener('keydown', (e)=>{
+  const tag = (e.target.tagName||'').toUpperCase();
+  if(['INPUT','TEXTAREA'].includes(tag)) return;
+  const mod = e.ctrlKey || e.metaKey;
+  if(mod && (e.key||'').toLowerCase()==='z'){ e.preventDefault(); e.shiftKey ? redo() : undo(); }
+});
+$('docTitle').addEventListener('input', ()=>{
+  if(!state.doc) return;
+  let t = state.doc.querySelector('title');
+  if(!t){ t = state.doc.createElement('title'); state.doc.head.appendChild(t); }
+  t.textContent = $('docTitle').value;
+});
+$('docDesc').addEventListener('input', ()=>{
+  if(!state.doc) return;
+  const v = $('docDesc').value.trim();
+  let md = state.doc.querySelector('meta[name=description]');
+  if(v){
+    if(!md){ md = state.doc.createElement('meta'); md.setAttribute('name','description'); state.doc.head.appendChild(md); }
+    md.setAttribute('content', v);
+  } else if(md){ md.remove(); }
+});
+['docTitle','docDesc'].forEach(id=>$(id).addEventListener('change', ()=>{ commit(); flash('ページ情報を更新しました'); }));
+$('btnAddPage').addEventListener('click', ()=>addPage('blank'));
+$('btnDupPage').addEventListener('click', ()=>addPage('dup'));
 
-// ---------------- Init ----------------
-(async function init(){
-  const home = newPage('ホーム', { slug:'index' });
-  state.pages = [home];
-  state.currentPageId = home.id;
-  loadPageIntoState(home);
-  state.canvasWidth = state.desktopWidth;
-  syncCanvasBox();
-  renderAccount();
-  refreshAuth();
-  let restored = false;
-  try{ restored = await loadTemp(); }catch(err){ console.log(err); }
-  renderPages();
-  zoomToFit();
-  historyReset();
-  $('btnSnap').classList.toggle('toggled', state.snap);
-})();
+renderPageList();
+renderBlockList();
+renderInspector();
+renderColors();
+updateHistoryButtons();
+refreshAuth();
 </script>
 </body>
 </html>
