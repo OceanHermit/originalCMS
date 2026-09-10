@@ -316,6 +316,7 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0;}
     <div class="brand"><span class="dot"></span><span class="full">ページビルダー</span></div>
     <div class="topbar-actions">
       <button class="icon-btn mobile-only" id="btnToggleRail" data-icon="menu" title="ツールパネル" aria-label="ツールパネル"></button>
+      <a class="btn" href="./blocks.html" title="AIが作ったHTMLをブロック単位で編集する">ブロック編集</a>
       <button class="icon-btn" id="btnImport" data-icon="folderOpen" title="ZIPを読み込む" aria-label="ZIPを読み込む"></button>
       <button class="icon-btn" id="btnSaveTemp" data-icon="floppy" title="一時保存(このブラウザ)" aria-label="一時保存"></button>
       <span class="tb-sep"></span>
@@ -3209,19 +3210,6 @@ $('publishModalClose').addEventListener('click', closePublishModal);
 $('publishModal').addEventListener('click', (e)=>{ if(e.target === $('publishModal')) closePublishModal(); });
 
 // ---------------- Init ----------------
-function seedDemoContent(){
-  const starLocal = presetPoints('star', 90, 90);
-  const starPts = starLocal.map(p=>({x:970+p.x, y:300+p.y}));
-  state.els.push(
-    { id:uid(), type:'text', x:90,y:80,w:640,h:64, z:1, text:'ここに見出しを入力してください', fontSize:44, color:'#1a1a1a', fontWeight:'700', textAlign:'left', fontFamily:FONTS[0].value, anim:{type:'fade-in',duration:700,delay:0,trigger:'load'} },
-    { id:uid(), type:'text', x:90,y:158,w:520,h:64, z:2, text:'サブテキストはここに。要素はクリックで選択、ドラッグで移動、ダブルクリックで編集できます。', fontSize:16, color:'#5b5b5b', fontWeight:'400', textAlign:'left', fontFamily:FONTS[0].value, anim:{type:'fade-in',duration:700,delay:150,trigger:'load'} },
-    { id:uid(), type:'rect', x:90,y:250,w:170,h:52, z:3, fill:{mode:'solid',color:'#6c5ce7',gradType:'linear',from:'#6c5ce7',to:'#00b894',angle:90}, borderColor:'', borderWidth:0, radius:26, anim:{type:'slide-up',duration:600,delay:250,trigger:'load'} },
-    { id:uid(), type:'ellipse', x:900,y:40,w:160,h:160, z:4, fill:{mode:'gradient',color:'#f2994a',gradType:'radial',from:'#f2994a',to:'#eb5757',angle:90}, borderColor:'', borderWidth:0, anim:{type:'zoom-in',duration:800,delay:100,trigger:'load'} },
-    { id:uid(), type:'vector', x:970,y:300,w:90,h:90, z:5, points:starPts, closed:true, fill:{mode:'solid',color:'#2ecc71',gradType:'linear',from:'#2ecc71',to:'#16a085',angle:90}, borderColor:'', borderWidth:0, anim:{type:'zoom-in',duration:700,delay:350,trigger:'load'} }
-  );
-  renderAll();
-}
-
 (async function init(){
   const home = newPage('ホーム', { slug:'index' });
   state.pages = [home];
@@ -3233,7 +3221,6 @@ function seedDemoContent(){
   refreshAuth();
   let restored = false;
   try{ restored = await loadTemp(); }catch(err){ console.log(err); }
-  if(!restored){ seedDemoContent(); }
   renderPages();
   zoomToFit();
   historyReset();
